@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+body{
+  margin:0;
+  padding:0;
+  font-family:Inter, sans-serif;
+  background:#0B1120;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+input::placeholder{
+    color:#94A3B8;
+}
+
+button{
+    transition:.25s;
+}
+
+img{
+    user-select:none;
+}
+
+/* =======================================
+   PRINT MEMBER ID CARD
+======================================= */
+
+@media print {
+
+  body * {
+    visibility: hidden;
+  }
+
+  #member-id-card,
+  #member-id-card * {
+    visibility: visible;
+  }
+
+  #member-id-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+}
