@@ -1,4 +1,5 @@
 import Sidebar from "./Sidebar";
+import BottomNav from "../dashboard/BottomNav";
 
 export default function DashboardLayout({ children }) {
   return (
@@ -6,13 +7,17 @@ export default function DashboardLayout({ children }) {
 
       <div className="flex">
 
-        <Sidebar />
+        <div className="hidden lg:block">
+          <Sidebar />
+        </div>
 
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 pb-24">
           {children}
         </main>
 
       </div>
+
+      <BottomNav />
 
     </div>
   );
