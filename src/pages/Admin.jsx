@@ -72,6 +72,7 @@ const [showModal, setShowModal] = useState(false);
 
 const [newMember, setNewMember] = useState({
   name: "",
+  birthdate: "",
   sertId: "",
   secretCode: "",
   status: "Active",
@@ -79,7 +80,7 @@ const [newMember, setNewMember] = useState({
   trauma: false,
   carriesTransportation: false,
   isAdmin: false,
-  photo: "", // NEW
+  photo: "",
 });
 
 const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -212,10 +213,15 @@ const totalTrainingPercent = Math.round(
 );
 
 async function addMember() {
-  if (!newMember.name || !newMember.sertId || !newMember.secretCode) {
-    alert("Please complete all required fields.");
-    return;
-  }
+if (
+  !newMember.name ||
+  !newMember.birthdate ||
+  !newMember.sertId ||
+  !newMember.secretCode
+) {
+  alert("Please complete all required fields.");
+  return;
+}
 
   const memberToAdd = {
     ...newMember,
@@ -227,17 +233,18 @@ async function addMember() {
   await addMemberFirestore(memberToAdd);
 
   // Reset the form
-  setNewMember({
-    name: "",
-    sertId: "",
-    secretCode: "",
-    status: "Active",
-    bls: false,
-    trauma: false,
-    carriesTransportation: false,
-    isAdmin: false,
-    photo: "",
-  });
+setNewMember({
+  name: "",
+  birthdate: "",
+  sertId: "",
+  secretCode: "",
+  status: "Active",
+  bls: false,
+  trauma: false,
+  carriesTransportation: false,
+  isAdmin: false,
+  photo: "",
+});
 
   // Close the modal
   setShowModal(false);

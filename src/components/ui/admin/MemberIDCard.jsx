@@ -3,6 +3,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import QRCode from "react-qr-code";
 import logo from "../../../assets/images/sert-logo.jpg";
+import { calculateAge } from "../../../utils/calculateAge";
 
 export default function MemberIDCard({ member }) {
   const cardRef = useRef(null);
@@ -16,7 +17,7 @@ export default function MemberIDCard({ member }) {
       ? "Senior"
       : "Neophyte";
 
-      
+  const age = calculateAge(member.birthdate);
 
   const initials = member.name
     .split(" ")
@@ -24,69 +25,61 @@ export default function MemberIDCard({ member }) {
     .slice(0, 2)
     .join("");
 
-async function downloadPNG() {
+  async function downloadPNG() {
+    if (!cardRef.current) return;
 
-  console.log(cardRef.current);
+    const canvas = await html2canvas(cardRef.current, {
+      scale: 4,
+      backgroundColor: null,
+      useCORS: true,
+    });
 
-  if (!cardRef.current) return;
+    const link = document.createElement("a");
 
-  const canvas = await html2canvas(cardRef.current, {
-    scale: 4,
-    backgroundColor: null,
-    useCORS: true,
-  });
+    link.download = `${member.sertId}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
 
-  const link = document.createElement("a");
+  async function downloadPDF() {
+    if (!cardRef.current) return;
 
-  link.download = `${member.sertId}.png`;
+    const canvas = await html2canvas(cardRef.current, {
+      scale: 4,
+      backgroundColor: null,
+      useCORS: true,
+    });
 
-  link.href = canvas.toDataURL("image/png");
+    const image = canvas.toDataURL("image/png");
 
-  link.click();
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: [54, 86],
+    });
 
-}
+    pdf.addImage(
+      image,
+      "PNG",
+      0,
+      0,
+      86,
+      54
+    );
 
-async function downloadPDF() {
-
-  if (!cardRef.current) return;
-
-  const canvas = await html2canvas(cardRef.current, {
-    scale: 4,
-    backgroundColor: null,
-    useCORS: true,
-  });
-
-  const image = canvas.toDataURL("image/png");
-
-  const pdf = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: [54, 86],
-  });
-
-  pdf.addImage(
-    image,
-    "PNG",
-    0,
-    0,
-    86,
-    54
-  );
-
-  pdf.save(`${member.sertId}.pdf`);
-
-}
+    pdf.save(`${member.sertId}.pdf`);
+  }
 
   return (
     <div className="flex flex-col items-center">
 
       {/* CARD */}
 
-<div
-  ref={cardRef}
-  id="member-id-card"
-  className="mx-auto w-[360px] rounded-3xl border border-blue-500/30 bg-gradient-to-br from-[#0B1527] via-[#132340] to-[#1A2F54] shadow-2xl"
->
+      <div
+        ref={cardRef}
+        id="member-id-card"
+        className="mx-auto w-[360px] rounded-3xl border border-blue-500/30 bg-gradient-to-br from-[#0B1527] via-[#132340] to-[#1A2F54] shadow-2xl"
+      >
 
         {/* Header */}
 
@@ -152,68 +145,109 @@ async function downloadPDF() {
 
         </div>
 
- {/* Footer */}
+        {/* Member Details */}
 
-<div className="border-t border-white/10 p-6">
+        <div className="border-t border-white/10 px-6 py-5">
 
-  <div className="flex items-center justify-between">
+          <div className="grid grid-cols-2 gap-4">
 
-    <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-400">
+                BIRTHDATE
+              </p>
 
-      <div>
-        <p className="text-xs text-gray-400">STATUS</p>
-        <p className="font-semibold text-white">
-          {member.status}
-        </p>
-      </div>
+              <p className="font-semibold text-white">
+                {member.birthdate
+                  ? new Date(
+                      member.birthdate + "T00:00:00"
+                    ).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : "N/A"}
+              </p>
+            </div>
 
-      <div>
-        <p className="text-xs text-gray-400">MEMBER ID</p>
-        <p className="font-semibold text-blue-300">
-          {member.sertId}
-        </p>
-      </div>
+            <div>
+              <p className="text-xs text-gray-400">
+                AGE
+              </p>
 
-    </div>
+              <p className="font-semibold text-white">
+                {age !== ""
+                  ? `${age} years old`
+                  : "N/A"}
+              </p>
+            </div>
 
-    <div className="rounded-lg bg-white p-2">
-      
-<QRCode
-  value={`SERT ID: ${member.sertId}
+            <div>
+              <p className="text-xs text-gray-400">
+                STATUS
+              </p>
+
+              <p className="font-semibold text-white">
+                {member.status}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-400">
+                MEMBER ID
+              </p>
+
+              <p className="font-semibold text-blue-300">
+                {member.sertId}
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* QR Code */}
+
+        <div className="border-t border-white/10 p-6">
+
+          <div className="flex items-center justify-center">
+
+            <div className="rounded-lg bg-white p-2">
+
+              <QRCode
+                value={`SERT ID: ${member.sertId}
 NAME: ${member.name}
 RANK: ${rank}
+BIRTHDATE: ${member.birthdate || "N/A"}
+AGE: ${age !== "" ? age : "N/A"}
 STATUS: ${member.status}`}
-  size={95}
-  level="H"
-  bgColor="#ffffff"
-  fgColor="#000000"
-/>
+                size={95}
+                level="H"
+                bgColor="#ffffff"
+                fgColor="#000000"
+              />
 
-    </div>
+            </div>
 
-  </div>
+          </div>
 
-</div>
+        </div>
 
       </div>
 
       {/* BUTTONS */}
 
-{/* BUTTONS */}
+      <div className="mt-6 grid w-full gap-3">
 
-<div className="mt-6 grid w-full gap-3">
+        <button
+          onClick={() => {
+            window.print();
+          }}
+          className="rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
+        >
+          🖨 Print ID Card
+        </button>
 
-  <button
-    onClick={() => {
-  console.log("PRINT CLICKED");
-  window.print();
-}}
-    className="rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
-  >
-    🖨 Print ID Card
-  </button>
-
-</div>
+      </div>
 
     </div>
   );

@@ -1,4 +1,5 @@
 import MemberIDCard from "./MemberIDCard";
+import { calculateAge } from "../../../utils/calculateAge";
 
 export default function MemberProfileModal({
   open,
@@ -6,6 +7,8 @@ export default function MemberProfileModal({
   onClose,
 }) {
   if (!open || !member) return null;
+
+  const age = calculateAge(member.birthdate);
 
   const rank =
     member.bls &&
@@ -73,29 +76,53 @@ export default function MemberProfileModal({
 
             {/* Member Information */}
 
-            <div className="mt-10 grid gap-4">
+<div className="mt-10 grid gap-4">
 
-              <Info
-                label="Status"
-                value={member.status}
-              />
+  <Info
+    label="Status"
+    value={member.status}
+  />
 
-              <Info
-                label="Rank"
-                value={rank}
-              />
+  <Info
+    label="Rank"
+    value={rank}
+  />
 
-              <Info
-                label="Administrator"
-                value={member.isAdmin ? "YES" : "NO"}
-              />
+  <Info
+    label="Birthdate"
+    value={
+      member.birthdate
+        ? new Date(
+            member.birthdate + "T00:00:00"
+          ).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "Not provided"
+    }
+  />
 
-              <Info
-                label="SERT ID"
-                value={member.sertId}
-              />
+  <Info
+    label="Age"
+    value={
+      age !== ""
+        ? `${age} years old`
+        : "Not provided"
+    }
+  />
 
-            </div>
+  <Info
+    label="Administrator"
+    value={member.isAdmin ? "YES" : "NO"}
+  />
+
+  <Info
+    label="SERT ID"
+    value={member.sertId}
+  />
+
+</div>
 
             {/* Training Progress */}
 

@@ -39,6 +39,26 @@ export default function AddMemberModal({
 
           </div>
 
+          {/* Birthdate */}
+
+<div>
+  <label className="mb-2 block text-gray-300">
+    Birthdate
+  </label>
+
+  <input
+    type="date"
+    className="w-full rounded-xl bg-[#101B2E] p-3 text-white outline-none"
+    value={newMember.birthdate || ""}
+    onChange={(e) =>
+      setNewMember({
+        ...newMember,
+        birthdate: e.target.value,
+      })
+    }
+  />
+</div>
+
           {/* SERT ID */}
 
           <div>

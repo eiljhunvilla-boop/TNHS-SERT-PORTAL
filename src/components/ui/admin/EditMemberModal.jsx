@@ -18,6 +18,7 @@ export default function EditMemberModal({
 
         <div className="grid gap-5 md:grid-cols-2">
 
+          {/* Full Name */}
           <div>
             <label className="mb-2 block text-gray-300">
               Full Name
@@ -35,6 +36,7 @@ export default function EditMemberModal({
             />
           </div>
 
+          {/* SERT ID */}
           <div>
             <label className="mb-2 block text-gray-300">
               SERT ID
@@ -52,6 +54,26 @@ export default function EditMemberModal({
             />
           </div>
 
+          {/* Birthdate */}
+          <div>
+            <label className="mb-2 block text-gray-300">
+              Birthdate
+            </label>
+
+            <input
+              type="date"
+              className="w-full rounded-xl bg-[#101B2E] p-3 text-white outline-none"
+              value={editMember.birthdate || ""}
+              onChange={(e) =>
+                setEditMember({
+                  ...editMember,
+                  birthdate: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          {/* Secret Code */}
           <div>
             <label className="mb-2 block text-gray-300">
               Secret Code
@@ -69,6 +91,7 @@ export default function EditMemberModal({
             />
           </div>
 
+          {/* Status */}
           <div>
             <label className="mb-2 block text-gray-300">
               Status
@@ -90,6 +113,8 @@ export default function EditMemberModal({
           </div>
 
         </div>
+
+        {/* Trainings */}
 
         <div className="mt-8 space-y-3">
 
@@ -150,6 +175,8 @@ export default function EditMemberModal({
           </label>
 
         </div>
+
+        {/* Buttons */}
 
         <div className="mt-8 flex justify-end gap-4">
 
