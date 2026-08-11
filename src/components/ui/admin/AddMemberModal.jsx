@@ -74,11 +74,54 @@ export default function AddMemberModal({
                 setNewMember({
                   ...newMember,
                   sertId: e.target.value.toUpperCase(),
-                })
+                })  
               }
             />
 
           </div>
+
+          {/* Contact Number */}
+
+<div>
+  <label className="mb-2 block text-gray-300">
+    Contact Number
+  </label>
+
+  <input
+    type="tel"
+    placeholder="09XXXXXXXXX"
+    className="w-full rounded-xl bg-[#101B2E] p-3 text-white outline-none"
+    value={newMember.contactNumber}
+    onChange={(e) =>
+      setNewMember({
+        ...newMember,
+        contactNumber: e.target.value,
+      })
+    }
+  />
+</div>
+
+
+{/* Address */}
+
+<div>
+  <label className="mb-2 block text-gray-300">
+    Address
+  </label>
+
+  <input
+    type="text"
+    placeholder="Enter complete address"
+    className="w-full rounded-xl bg-[#101B2E] p-3 text-white outline-none"
+    value={newMember.address}
+    onChange={(e) =>
+      setNewMember({
+        ...newMember,
+        address: e.target.value,
+      })
+    }
+  />
+</div>
 
           {/* Secret Code */}
 

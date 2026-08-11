@@ -10,6 +10,10 @@ export default function MemberIDCard({ member }) {
 
   if (!member) return null;
 
+  // =========================
+  // RANK
+  // =========================
+
   const rank =
     member.bls &&
     member.trauma &&
@@ -17,13 +21,39 @@ export default function MemberIDCard({ member }) {
       ? "Senior"
       : "Neophyte";
 
+  // =========================
+  // AGE
+  // =========================
+
   const age = calculateAge(member.birthdate);
+
+  // =========================
+  // INITIALS
+  // =========================
 
   const initials = member.name
     .split(" ")
     .map((n) => n[0])
     .slice(0, 2)
     .join("");
+
+  // =========================
+  // BIRTHDATE FORMAT
+  // =========================
+
+  const formattedBirthdate = member.birthdate
+    ? new Date(
+        member.birthdate + "T00:00:00"
+      ).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "N/A";
+
+  // =========================
+  // DOWNLOAD PNG
+  // =========================
 
   async function downloadPNG() {
     if (!cardRef.current) return;
@@ -38,8 +68,13 @@ export default function MemberIDCard({ member }) {
 
     link.download = `${member.sertId}.png`;
     link.href = canvas.toDataURL("image/png");
+
     link.click();
   }
+
+  // =========================
+  // DOWNLOAD PDF
+  // =========================
 
   async function downloadPDF() {
     if (!cardRef.current) return;
@@ -73,15 +108,19 @@ export default function MemberIDCard({ member }) {
   return (
     <div className="flex flex-col items-center">
 
-      {/* CARD */}
+      {/* =========================
+          ID CARD
+      ========================= */}
 
       <div
         ref={cardRef}
         id="member-id-card"
-        className="mx-auto w-[360px] rounded-3xl border border-blue-500/30 bg-gradient-to-br from-[#0B1527] via-[#132340] to-[#1A2F54] shadow-2xl"
+        className="mx-auto w-[360px] overflow-hidden rounded-3xl border border-blue-500/30 bg-gradient-to-br from-[#0B1527] via-[#132340] to-[#1A2F54] shadow-2xl"
       >
 
-        {/* Header */}
+        {/* =========================
+            HEADER
+        ========================= */}
 
         <div className="flex items-center gap-4 border-b border-white/10 p-5">
 
@@ -105,7 +144,10 @@ export default function MemberIDCard({ member }) {
 
         </div>
 
-        {/* Body */}
+
+        {/* =========================
+            MEMBER PHOTO / NAME
+        ========================= */}
 
         <div className="flex flex-col items-center p-8">
 
@@ -134,7 +176,7 @@ export default function MemberIDCard({ member }) {
           </p>
 
           <span
-            className={`mt-4 rounded-full px-5 py-2 ${
+            className={`mt-4 rounded-full px-5 py-2 font-semibold ${
               rank === "Senior"
                 ? "bg-green-500/20 text-green-400"
                 : "bg-yellow-500/20 text-yellow-400"
@@ -145,31 +187,34 @@ export default function MemberIDCard({ member }) {
 
         </div>
 
-        {/* Member Details */}
+
+        {/* =========================
+            MEMBER DETAILS
+        ========================= */}
 
         <div className="border-t border-white/10 px-6 py-5">
 
           <div className="grid grid-cols-2 gap-4">
 
+            {/* Birthdate */}
+
             <div>
+
               <p className="text-xs text-gray-400">
                 BIRTHDATE
               </p>
 
               <p className="font-semibold text-white">
-                {member.birthdate
-                  ? new Date(
-                      member.birthdate + "T00:00:00"
-                    ).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "N/A"}
+                {formattedBirthdate}
               </p>
+
             </div>
 
+
+            {/* Age */}
+
             <div>
+
               <p className="text-xs text-gray-400">
                 AGE
               </p>
@@ -179,19 +224,35 @@ export default function MemberIDCard({ member }) {
                   ? `${age} years old`
                   : "N/A"}
               </p>
+
             </div>
 
+
+            {/* Status */}
+
             <div>
+
               <p className="text-xs text-gray-400">
                 STATUS
               </p>
 
-              <p className="font-semibold text-white">
+              <p
+                className={`font-semibold ${
+                  member.status === "Active"
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
+              >
                 {member.status}
               </p>
+
             </div>
 
+
+            {/* Member ID */}
+
             <div>
+
               <p className="text-xs text-gray-400">
                 MEMBER ID
               </p>
@@ -199,17 +260,55 @@ export default function MemberIDCard({ member }) {
               <p className="font-semibold text-blue-300">
                 {member.sertId}
               </p>
+
             </div>
+
+          </div>
+
+
+          {/* =========================
+              CONTACT NUMBER
+          ========================= */}
+
+          <div className="mt-5">
+
+            <p className="text-xs text-gray-400">
+              CONTACT NUMBER
+            </p>
+
+            <p className="break-words font-semibold text-white">
+              {member.contactNumber || "Not provided"}
+            </p>
+
+          </div>
+
+
+          {/* =========================
+              ADDRESS
+          ========================= */}
+
+          <div className="mt-4">
+
+            <p className="text-xs text-gray-400">
+              ADDRESS
+            </p>
+
+            <p className="break-words font-semibold text-white">
+              {member.address || "Not provided"}
+            </p>
 
           </div>
 
         </div>
 
-        {/* QR Code */}
+
+        {/* =========================
+            QR CODE
+        ========================= */}
 
         <div className="border-t border-white/10 p-6">
 
-          <div className="flex items-center justify-center">
+          <div className="flex flex-col items-center">
 
             <div className="rounded-lg bg-white p-2">
 
@@ -219,7 +318,9 @@ NAME: ${member.name}
 RANK: ${rank}
 BIRTHDATE: ${member.birthdate || "N/A"}
 AGE: ${age !== "" ? age : "N/A"}
-STATUS: ${member.status}`}
+STATUS: ${member.status}
+CONTACT: ${member.contactNumber || "N/A"}
+ADDRESS: ${member.address || "N/A"}`}
                 size={95}
                 level="H"
                 bgColor="#ffffff"
@@ -228,13 +329,20 @@ STATUS: ${member.status}`}
 
             </div>
 
+            <p className="mt-3 text-center text-xs text-gray-400">
+              Scan for member information
+            </p>
+
           </div>
 
         </div>
 
       </div>
 
-      {/* BUTTONS */}
+
+      {/* =========================
+          BUTTONS
+      ========================= */}
 
       <div className="mt-6 grid w-full gap-3">
 

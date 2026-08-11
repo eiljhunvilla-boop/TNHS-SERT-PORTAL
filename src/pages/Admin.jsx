@@ -73,6 +73,8 @@ const [showModal, setShowModal] = useState(false);
 const [newMember, setNewMember] = useState({
   name: "",
   birthdate: "",
+  contactNumber: "",
+  address: "",
   sertId: "",
   secretCode: "",
   status: "Active",
@@ -236,6 +238,8 @@ if (
 setNewMember({
   name: "",
   birthdate: "",
+  contactNumber: "",
+  address: "",
   sertId: "",
   secretCode: "",
   status: "Active",

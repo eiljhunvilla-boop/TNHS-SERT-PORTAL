@@ -73,6 +73,46 @@ export default function EditMemberModal({
             />
           </div>
 
+          {/* Contact Number */}
+<div>
+  <label className="mb-2 block text-gray-300">
+    Contact Number
+  </label>
+
+  <input
+    type="tel"
+    placeholder="09XXXXXXXXX"
+    className="w-full rounded-xl bg-[#101B2E] p-3 text-white outline-none"
+    value={editMember.contactNumber || ""}
+    onChange={(e) =>
+      setEditMember({
+        ...editMember,
+        contactNumber: e.target.value,
+      })
+    }
+  />
+</div>
+
+{/* Address */}
+<div>
+  <label className="mb-2 block text-gray-300">
+    Address
+  </label>
+
+  <input
+    type="text"
+    placeholder="Enter address"
+    className="w-full rounded-xl bg-[#101B2E] p-3 text-white outline-none"
+    value={editMember.address || ""}
+    onChange={(e) =>
+      setEditMember({
+        ...editMember,
+        address: e.target.value,
+      })
+    }
+  />
+</div>
+
           {/* Secret Code */}
           <div>
             <label className="mb-2 block text-gray-300">

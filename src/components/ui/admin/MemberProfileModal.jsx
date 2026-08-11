@@ -24,9 +24,9 @@ export default function MemberProfileModal({
     .join("");
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm overflow-y-auto p-6">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-sm">
 
-<div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#182234] p-8 shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/10 bg-[#182234] p-8 shadow-2xl">
 
         <div className="grid gap-10 lg:grid-cols-2">
 
@@ -34,27 +34,23 @@ export default function MemberProfileModal({
 
           <div>
 
+            {/* Profile Header */}
+
             <div className="flex flex-col items-center">
 
-              {/* Profile Photo or Initials */}
-
               {member.photo ? (
-
                 <img
                   src={member.photo}
                   alt={member.name}
                   className="h-28 w-28 rounded-full border-4 border-blue-500 object-cover shadow-xl"
                 />
-
               ) : (
-
                 <div className="flex h-28 w-28 items-center justify-center rounded-full bg-blue-600 text-4xl font-bold text-white shadow-xl">
                   {initials}
                 </div>
-
               )}
 
-              <h2 className="mt-6 text-3xl font-bold text-white text-center">
+              <h2 className="mt-6 text-center text-3xl font-bold text-white">
                 {member.name}
               </h2>
 
@@ -74,57 +70,77 @@ export default function MemberProfileModal({
 
             </div>
 
-            {/* Member Information */}
+            {/* ================= MEMBER INFORMATION ================= */}
 
-<div className="mt-10 grid gap-4">
+            <div className="mt-10 grid gap-4">
 
-  <Info
-    label="Status"
-    value={member.status}
-  />
+              <Info
+                label="Status"
+                value={member.status}
+              />
 
-  <Info
-    label="Rank"
-    value={rank}
-  />
+              <Info
+                label="Rank"
+                value={rank}
+              />
 
-  <Info
-    label="Birthdate"
-    value={
-      member.birthdate
-        ? new Date(
-            member.birthdate + "T00:00:00"
-          ).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
-        : "Not provided"
-    }
-  />
+              <Info
+                label="Birthdate"
+                value={
+                  member.birthdate
+                    ? new Date(
+                        member.birthdate + "T00:00:00"
+                      ).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : "Not provided"
+                }
+              />
 
-  <Info
-    label="Age"
-    value={
-      age !== ""
-        ? `${age} years old`
-        : "Not provided"
-    }
-  />
+              <Info
+                label="Age"
+                value={
+                  age !== ""
+                    ? `${age} years old`
+                    : "Not provided"
+                }
+              />
 
-  <Info
-    label="Administrator"
-    value={member.isAdmin ? "YES" : "NO"}
-  />
+              {/* CONTACT NUMBER */}
 
-  <Info
-    label="SERT ID"
-    value={member.sertId}
-  />
+              <Info
+                label="Contact Number"
+                value={
+                  member.contactNumber ||
+                  "Not provided"
+                }
+              />
 
-</div>
+              {/* ADDRESS */}
 
-            {/* Training Progress */}
+              <Info
+                label="Address"
+                value={
+                  member.address ||
+                  "Not provided"
+                }
+              />
+
+              <Info
+                label="Administrator"
+                value={member.isAdmin ? "YES" : "NO"}
+              />
+
+              <Info
+                label="SERT ID"
+                value={member.sertId}
+              />
+
+            </div>
+
+            {/* ================= TRAINING PROGRESS ================= */}
 
             <div className="mt-10">
 
@@ -153,11 +169,13 @@ export default function MemberProfileModal({
 
           {/* ================= RIGHT SIDE ================= */}
 
-<div className="flex justify-center overflow-y-auto max-h-[80vh]">
-  <MemberIDCard member={member} />
-</div>
+          <div className="flex max-h-[80vh] justify-center overflow-y-auto">
+            <MemberIDCard member={member} />
+          </div>
 
         </div>
+
+        {/* CLOSE BUTTON */}
 
         <button
           onClick={onClose}
@@ -172,21 +190,27 @@ export default function MemberProfileModal({
   );
 }
 
+
+/* ================= INFO COMPONENT ================= */
+
 function Info({ label, value }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-[#101B2E] p-4">
+    <div className="flex items-center justify-between gap-4 rounded-xl bg-[#101B2E] p-4">
 
-      <span className="text-gray-400">
+      <span className="shrink-0 text-gray-400">
         {label}
       </span>
 
-      <span className="font-semibold text-white">
+      <span className="break-words text-right font-semibold text-white">
         {value}
       </span>
 
     </div>
   );
 }
+
+
+/* ================= TRAINING BAR ================= */
 
 function TrainingBar({ title, done }) {
   return (
