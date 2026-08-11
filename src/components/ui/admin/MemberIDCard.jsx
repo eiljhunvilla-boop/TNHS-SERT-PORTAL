@@ -10,10 +10,6 @@ export default function MemberIDCard({ member }) {
 
   if (!member) return null;
 
-  // =========================
-  // RANK
-  // =========================
-
   const rank =
     member.bls &&
     member.trauma &&
@@ -21,25 +17,13 @@ export default function MemberIDCard({ member }) {
       ? "Senior"
       : "Neophyte";
 
-  // =========================
-  // AGE
-  // =========================
-
   const age = calculateAge(member.birthdate);
-
-  // =========================
-  // INITIALS
-  // =========================
 
   const initials = member.name
     .split(" ")
     .map((n) => n[0])
     .slice(0, 2)
     .join("");
-
-  // =========================
-  // BIRTHDATE FORMAT
-  // =========================
 
   const formattedBirthdate = member.birthdate
     ? new Date(
@@ -51,10 +35,6 @@ export default function MemberIDCard({ member }) {
       })
     : "N/A";
 
-  // =========================
-  // DOWNLOAD PNG
-  // =========================
-
   async function downloadPNG() {
     if (!cardRef.current) return;
 
@@ -62,6 +42,7 @@ export default function MemberIDCard({ member }) {
       scale: 4,
       backgroundColor: null,
       useCORS: true,
+      logging: false,
     });
 
     const link = document.createElement("a");
@@ -72,10 +53,6 @@ export default function MemberIDCard({ member }) {
     link.click();
   }
 
-  // =========================
-  // DOWNLOAD PDF
-  // =========================
-
   async function downloadPDF() {
     if (!cardRef.current) return;
 
@@ -83,14 +60,15 @@ export default function MemberIDCard({ member }) {
       scale: 4,
       backgroundColor: null,
       useCORS: true,
+      logging: false,
     });
 
     const image = canvas.toDataURL("image/png");
 
     const pdf = new jsPDF({
-      orientation: "landscape",
+      orientation: "portrait",
       unit: "mm",
-      format: [54, 86],
+      format: [86, 110],
     });
 
     pdf.addImage(
@@ -99,221 +77,209 @@ export default function MemberIDCard({ member }) {
       0,
       0,
       86,
-      54
+      110
     );
 
     pdf.save(`${member.sertId}.pdf`);
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex w-full flex-col items-center">
 
       {/* =========================
-          ID CARD
+          CARD CONTAINER
       ========================= */}
 
-      <div
-        ref={cardRef}
-        id="member-id-card"
-        className="mx-auto w-[360px] overflow-hidden rounded-3xl border border-blue-500/30 bg-gradient-to-br from-[#0B1527] via-[#132340] to-[#1A2F54] shadow-2xl"
-      >
+      <div className="w-full overflow-x-auto pb-4">
 
-        {/* =========================
-            HEADER
-        ========================= */}
+        <div className="flex min-w-max justify-center px-2">
 
-        <div className="flex items-center gap-4 border-b border-white/10 p-5">
+          {/* =========================
+              DIGITAL ID CARD
+          ========================= */}
 
-          <img
-            src={logo}
-            alt="SERT"
-            className="h-16 w-16 rounded-full border-2 border-white"
-          />
-
-          <div>
-
-            <h2 className="text-xl font-bold text-white">
-              TNHS SERT
-            </h2>
-
-            <p className="text-sm text-blue-200">
-              School Emergency Response Team
-            </p>
-
-          </div>
-
-        </div>
-
-
-        {/* =========================
-            MEMBER PHOTO / NAME
-        ========================= */}
-
-        <div className="flex flex-col items-center p-8">
-
-          {member.photo ? (
-
-            <img
-              src={member.photo}
-              alt={member.name}
-              className="h-28 w-28 rounded-full border-4 border-blue-500 object-cover"
-            />
-
-          ) : (
-
-            <div className="flex h-28 w-28 items-center justify-center rounded-full bg-blue-600 text-4xl font-bold text-white">
-              {initials}
-            </div>
-
-          )}
-
-          <h2 className="mt-5 text-center text-2xl font-bold text-white">
-            {member.name}
-          </h2>
-
-          <p className="mt-2 text-blue-300">
-            {member.sertId}
-          </p>
-
-          <span
-            className={`mt-4 rounded-full px-5 py-2 font-semibold ${
-              rank === "Senior"
-                ? "bg-green-500/20 text-green-400"
-                : "bg-yellow-500/20 text-yellow-400"
-            }`}
+          <div
+            ref={cardRef}
+            id="member-id-card"
+            className="w-[360px] overflow-hidden rounded-3xl border border-blue-500/30 bg-gradient-to-br from-[#0B1527] via-[#132340] to-[#1A2F54] shadow-2xl"
           >
-            {rank}
-          </span>
 
-        </div>
+            {/* =========================
+                HEADER
+            ========================= */}
 
+            <div className="flex items-center gap-4 border-b border-white/10 p-5">
 
-        {/* =========================
-            MEMBER DETAILS
-        ========================= */}
+              <img
+                src={logo}
+                alt="SERT"
+                className="h-16 w-16 shrink-0 rounded-full border-2 border-white object-cover"
+              />
 
-        <div className="border-t border-white/10 px-6 py-5">
+              <div className="min-w-0">
 
-          <div className="grid grid-cols-2 gap-4">
+                <h2 className="text-xl font-bold text-white">
+                  TNHS SERT
+                </h2>
 
-            {/* Birthdate */}
+                <p className="text-sm text-blue-200">
+                  School Emergency Response Team
+                </p>
 
-            <div>
-
-              <p className="text-xs text-gray-400">
-                BIRTHDATE
-              </p>
-
-              <p className="font-semibold text-white">
-                {formattedBirthdate}
-              </p>
-
-            </div>
-
-
-            {/* Age */}
-
-            <div>
-
-              <p className="text-xs text-gray-400">
-                AGE
-              </p>
-
-              <p className="font-semibold text-white">
-                {age !== ""
-                  ? `${age} years old`
-                  : "N/A"}
-              </p>
+              </div>
 
             </div>
 
 
-            {/* Status */}
+            {/* =========================
+                MEMBER
+            ========================= */}
 
-            <div>
+            <div className="flex flex-col items-center p-8">
 
-              <p className="text-xs text-gray-400">
-                STATUS
-              </p>
+              {member.photo ? (
 
-              <p
-                className={`font-semibold ${
-                  member.status === "Active"
-                    ? "text-green-400"
-                    : "text-red-400"
-                }`}
-              >
-                {member.status}
-              </p>
+                <img
+                  src={member.photo}
+                  alt={member.name}
+                  className="h-28 w-28 shrink-0 rounded-full border-4 border-blue-500 object-cover"
+                />
 
-            </div>
+              ) : (
 
+                <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-blue-600 text-4xl font-bold text-white">
+                  {initials}
+                </div>
 
-            {/* Member ID */}
+              )}
 
-            <div>
+              <h2 className="mt-5 max-w-full break-words px-2 text-center text-2xl font-bold text-white">
+                {member.name}
+              </h2>
 
-              <p className="text-xs text-gray-400">
-                MEMBER ID
-              </p>
-
-              <p className="font-semibold text-blue-300">
+              <p className="mt-2 text-blue-300">
                 {member.sertId}
               </p>
 
+              <span
+                className={`mt-4 rounded-full px-5 py-2 font-semibold ${
+                  rank === "Senior"
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-yellow-500/20 text-yellow-400"
+                }`}
+              >
+                {rank}
+              </span>
+
             </div>
 
-          </div>
+
+            {/* =========================
+                MEMBER DETAILS
+            ========================= */}
+
+            <div className="border-t border-white/10 px-6 py-5">
+
+              <div className="grid grid-cols-2 gap-4">
+
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-400">
+                    BIRTHDATE
+                  </p>
+
+                  <p className="break-words font-semibold text-white">
+                    {formattedBirthdate}
+                  </p>
+                </div>
 
 
-          {/* =========================
-              CONTACT NUMBER
-          ========================= */}
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-400">
+                    AGE
+                  </p>
 
-          <div className="mt-5">
-
-            <p className="text-xs text-gray-400">
-              CONTACT NUMBER
-            </p>
-
-            <p className="break-words font-semibold text-white">
-              {member.contactNumber || "Not provided"}
-            </p>
-
-          </div>
+                  <p className="font-semibold text-white">
+                    {age !== ""
+                      ? `${age} years old`
+                      : "N/A"}
+                  </p>
+                </div>
 
 
-          {/* =========================
-              ADDRESS
-          ========================= */}
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-400">
+                    STATUS
+                  </p>
 
-          <div className="mt-4">
-
-            <p className="text-xs text-gray-400">
-              ADDRESS
-            </p>
-
-            <p className="break-words font-semibold text-white">
-              {member.address || "Not provided"}
-            </p>
-
-          </div>
-
-        </div>
+                  <p
+                    className={`font-semibold ${
+                      member.status === "Active"
+                        ? "text-green-400"
+                        : "text-red-400"
+                    }`}
+                  >
+                    {member.status}
+                  </p>
+                </div>
 
 
-        {/* =========================
-            QR CODE
-        ========================= */}
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-400">
+                    MEMBER ID
+                  </p>
 
-        <div className="border-t border-white/10 p-6">
+                  <p className="break-words font-semibold text-blue-300">
+                    {member.sertId}
+                  </p>
+                </div>
 
-          <div className="flex flex-col items-center">
+              </div>
 
-            <div className="rounded-lg bg-white p-2">
 
-              <QRCode
-                value={`SERT ID: ${member.sertId}
+              {/* CONTACT */}
+
+              <div className="mt-5 min-w-0">
+
+                <p className="text-xs text-gray-400">
+                  CONTACT NUMBER
+                </p>
+
+                <p className="break-words font-semibold text-white">
+                  {member.contactNumber || "Not provided"}
+                </p>
+
+              </div>
+
+
+              {/* ADDRESS */}
+
+              <div className="mt-4 min-w-0">
+
+                <p className="text-xs text-gray-400">
+                  ADDRESS
+                </p>
+
+                <p className="break-words font-semibold leading-relaxed text-white">
+                  {member.address || "Not provided"}
+                </p>
+
+              </div>
+
+            </div>
+
+
+            {/* =========================
+                QR CODE
+            ========================= */}
+
+            <div className="border-t border-white/10 p-6">
+
+              <div className="flex flex-col items-center">
+
+                <div className="rounded-lg bg-white p-2">
+
+                  <QRCode
+                    value={`SERT ID: ${member.sertId}
 NAME: ${member.name}
 RANK: ${rank}
 BIRTHDATE: ${member.birthdate || "N/A"}
@@ -321,17 +287,21 @@ AGE: ${age !== "" ? age : "N/A"}
 STATUS: ${member.status}
 CONTACT: ${member.contactNumber || "N/A"}
 ADDRESS: ${member.address || "N/A"}`}
-                size={95}
-                level="H"
-                bgColor="#ffffff"
-                fgColor="#000000"
-              />
+                    size={95}
+                    level="H"
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                  />
+
+                </div>
+
+                <p className="mt-3 text-center text-xs text-gray-400">
+                  Scan for member information
+                </p>
+
+              </div>
 
             </div>
-
-            <p className="mt-3 text-center text-xs text-gray-400">
-              Scan for member information
-            </p>
 
           </div>
 
@@ -344,12 +314,10 @@ ADDRESS: ${member.address || "N/A"}`}
           BUTTONS
       ========================= */}
 
-      <div className="mt-6 grid w-full gap-3">
+      <div className="mt-4 grid w-full gap-3">
 
         <button
-          onClick={() => {
-            window.print();
-          }}
+          onClick={() => window.print()}
           className="rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
         >
           🖨 Print ID Card
