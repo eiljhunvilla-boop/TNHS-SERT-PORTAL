@@ -7,12 +7,23 @@ import {
   Shield,
   ShieldCheck,
 } from "lucide-react";
+
 import { NavLink } from "react-router-dom";
+
 import logo from "../../../assets/images/sert-logo.jpg";
 
+import {
+  useAnnouncements,
+} from "../../../context/AnnouncementContext";
+
 export default function Sidebar() {
-  const member = JSON.parse(localStorage.getItem("sertMember"));
-  console.log(member);
+  const member = JSON.parse(
+    localStorage.getItem("sertMember")
+  );
+
+  const {
+    unreadCount,
+  } = useAnnouncements();
 
   const menu = [
     {
@@ -46,6 +57,7 @@ export default function Sidebar() {
     <aside className="hidden lg:flex w-72 flex-col border-r border-white/10 bg-[#0B1527]/80 backdrop-blur-xl">
 
       {/* Logo */}
+
       <div className="p-8">
 
         <img
@@ -65,12 +77,15 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
+
       <nav className="mt-6 flex-1 px-4">
 
         {menu.map((item) => {
+
           const Icon = item.icon;
 
           return (
+
             <NavLink
               key={item.path}
               to={item.path}
@@ -82,14 +97,42 @@ export default function Sidebar() {
                 }`
               }
             >
-              <Icon size={20} />
+
+              <div className="relative">
+
+                <Icon size={20} />
+
+                {/* ========================= */}
+                {/* LIVE NOTIFICATION BADGE */}
+                {/* ========================= */}
+
+                {item.path === "/announcements" &&
+                  unreadCount > 0 && (
+
+                    <span className="absolute -right-3 -top-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg">
+
+                      {unreadCount > 99
+                        ? "99+"
+                        : unreadCount}
+
+                    </span>
+
+                  )}
+
+              </div>
+
               {item.name}
+
             </NavLink>
+
           );
+
         })}
 
-        {/* Admin Portal (Admins Only) */}
+        {/* Admin Portal */}
+
         {member?.isAdmin && (
+
           <NavLink
             to="/admin"
             className={({ isActive }) =>
@@ -100,14 +143,19 @@ export default function Sidebar() {
               }`
             }
           >
+
             <ShieldCheck size={20} />
+
             Admin Portal
+
           </NavLink>
+
         )}
 
       </nav>
 
       {/* Footer */}
+
       <div className="border-t border-white/10 p-6">
 
         <div className="flex items-center gap-3">
