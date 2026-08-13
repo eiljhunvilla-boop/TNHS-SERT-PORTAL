@@ -9,8 +9,18 @@ import {
 
 import { NavLink } from "react-router-dom";
 
+import {
+  useAnnouncements,
+} from "../../../context/AnnouncementContext";
+
 export default function BottomNav() {
-  const member = JSON.parse(localStorage.getItem("sertMember"));
+  const member = JSON.parse(
+    localStorage.getItem("sertMember")
+  );
+
+  const {
+    unreadCount,
+  } = useAnnouncements();
 
   const menu = [
     {
@@ -46,15 +56,37 @@ export default function BottomNav() {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              isActive
-                ? "text-blue-400"
-                : "text-gray-400"
+              `relative ${
+                isActive
+                  ? "text-blue-400"
+                  : "text-gray-400"
+              }`
             }
           >
-            <Icon size={24} />
+
+            <div className="relative">
+
+              <Icon size={24} />
+
+              {/* Live Notification Badge */}
+              {item.path === "/announcements" &&
+                unreadCount > 0 && (
+                  <span className="absolute -right-3 -top-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg">
+
+                    {unreadCount > 99
+                      ? "99+"
+                      : unreadCount}
+
+                  </span>
+                )}
+
+            </div>
+
           </NavLink>
         );
       })}
+
+      {/* Admin Portal */}
 
       {member?.isAdmin && (
         <NavLink
