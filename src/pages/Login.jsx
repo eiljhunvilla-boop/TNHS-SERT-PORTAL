@@ -9,6 +9,8 @@ import GlassCard from "../components/ui/Glasscard";
 import InputField from "../components/ui/InputField";
 import PrimaryButton from "../components/ui/PrimaryButton";
 import { getMembersFirestore } from "../services/memberService";
+import { requestNotificationPermission } from "../services/notificationService";
+
 
 import { getMemberFirestore } from "../services/memberService";
 
@@ -38,12 +40,15 @@ const handleLogin = async () => {
       return;
     }
 
-    localStorage.setItem(
-      "sertMember",
-      JSON.stringify(member)
-    );
+localStorage.setItem(
+  "sertMember",
+  JSON.stringify(member)
+);
 
-    navigate("/dashboard");
+// Register this device for push notifications
+await requestNotificationPermission(member);
+
+navigate("/dashboard");
 
   } catch (err) {
     console.error("LOGIN ERROR:", err);

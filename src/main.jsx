@@ -5,22 +5,35 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 
-import { AnnouncementContext } from "./context/AnnouncementContext";
+async function registerFirebaseMessagingSW() {
+  if ("serviceWorker" in navigator) {
+    try {
+      const registration =
+        await navigator.serviceWorker.register(
+          "/firebase-messaging-sw.js"
+        );
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+      console.log(
+        "Firebase Messaging Service Worker registered:",
+        registration
+      );
+    } catch (error) {
+      console.error(
+        "Firebase Messaging Service Worker registration failed:",
+        error
+      );
+    }
+  }
+}
 
-    <AnnouncementContext.Provider
-      value={{
-        announcementList: [],
-        readAnnouncements: [],
-        unreadCount: 0,
-        markAsRead: () => {},
-        markAsUnread: () => {},
-      }}
-    >
+registerFirebaseMessagingSW();
+
+ReactDOM.createRoot(
+  document.getElementById("root")
+).render(
+  <React.StrictMode>
+    <BrowserRouter>
       <App />
-    </AnnouncementContext.Provider>
-
-  </BrowserRouter>
+    </BrowserRouter>
+  </React.StrictMode>
 );

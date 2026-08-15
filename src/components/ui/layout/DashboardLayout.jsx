@@ -8,6 +8,12 @@ import {
 } from "../../../services/announcementService";
 
 import {
+  showAnnouncementNotification,
+} from "../../../services/notificationService";
+
+
+
+import {
   AnnouncementContext,
 } from "../../../context/AnnouncementContext";
 
@@ -28,14 +34,39 @@ export default function DashboardLayout({ children }) {
   // REAL-TIME ANNOUNCEMENTS
   // =================================
 
-  useEffect(() => {
-    const unsubscribe = subscribeAnnouncements((data) => {
-      setAnnouncementList(data);
-    });
+useEffect(() => {
+  let firstLoad = true;
+  let previousAnnouncementIds = new Set();
 
-    return () => unsubscribe();
-  }, []);
+  const unsubscribe = subscribeAnnouncements((data) => {
+    // Don't notify for announcements that already existed
+    // when the member first opened the portal.
+    if (firstLoad) {
+      previousAnnouncementIds = new Set(
+        data.map((announcement) => announcement.id)
+      );
 
+      firstLoad = false;
+    } else {
+      const newAnnouncements = data.filter(
+        (announcement) =>
+          !previousAnnouncementIds.has(announcement.id)
+      );
+
+      newAnnouncements.forEach((announcement) => {
+        showAnnouncementNotification(announcement);
+      });
+
+      previousAnnouncementIds = new Set(
+        data.map((announcement) => announcement.id)
+      );
+    }
+
+    setAnnouncementList(data);
+  });
+
+  return () => unsubscribe();
+}, []);
   // =================================
   // SAVE READ STATE
   // =================================
