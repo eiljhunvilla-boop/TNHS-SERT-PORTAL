@@ -11,38 +11,45 @@ import {
 
 import { messaging, db } from "../firebase";
 
-// Firebase Console → Project Settings
-// → Cloud Messaging → Web Push certificates
 const VAPID_KEY =
   "BOgGh02Vhy7drnkD4tcEc3gTdEVL1bMrLcyQ7kHx0w7QEGEvPLbrTiLz6vYroe6mLkbvIbECRLUYkE";
 
 /**
- * Register Firebase Messaging Service Worker
+ * Register Firebase Cloud Messaging
+ * service worker.
  */
 async function registerMessagingServiceWorker() {
   if (!("serviceWorker" in navigator)) {
     console.error(
       "Service workers are not supported by this browser."
     );
-
     return null;
   }
 
   try {
     const registration =
       await navigator.serviceWorker.register(
-        "/firebase-messaging-sw.js"
+        "/firebase-messaging-sw.js",
+        {
+          scope: "/",
+        }
       );
 
     console.log(
-      "Firebase Messaging Service Worker registered:",
+      "FCM Service Worker registered:",
       registration.scope
+    );
+
+    await navigator.serviceWorker.ready;
+
+    console.log(
+      "FCM Service Worker is ready."
     );
 
     return registration;
   } catch (error) {
     console.error(
-      "Failed to register Firebase Messaging Service Worker:",
+      "FCM Service Worker registration failed:",
       error
     );
 
@@ -52,7 +59,8 @@ async function registerMessagingServiceWorker() {
 
 /**
  * Request notification permission,
- * generate FCM token, and save it to Firestore.
+ * generate the FCM token,
+ * and save the token to Firestore.
  */
 export async function requestNotificationPermission(
   member
@@ -63,58 +71,79 @@ export async function requestNotificationPermission(
       !("Notification" in window) ||
       !("serviceWorker" in navigator)
     ) {
-      console.log(
-        "This browser does not support notifications."
+      console.error(
+        "This browser does not support push notifications."
       );
 
       return null;
     }
-
-    // Request notification permission
-    const permission =
-      await Notification.requestPermission();
 
     console.log(
-      "Notification permission:",
-      permission
+      "Current notification permission:",
+      Notification.permission
     );
 
-    if (permission !== "granted") {
+    // Only request permission when necessary
+    let permission =
+      Notification.permission;
+
+    if (permission === "default") {
+      permission =
+        await Notification.requestPermission();
+
       console.log(
-        "Notification permission was not granted."
+        "Notification permission after request:",
+        permission
+      );
+    }
+
+    if (permission !== "granted") {
+      console.error(
+        "Notification permission is not granted."
       );
 
       return null;
     }
 
-    // Register Firebase Messaging service worker
+    // Register the Firebase service worker
     const registration =
       await registerMessagingServiceWorker();
 
     if (!registration) {
       console.error(
-        "Firebase Messaging service worker registration failed."
+        "Could not register Firebase Messaging Service Worker."
       );
 
       return null;
     }
 
-    // Get FCM registration token
-    const token = await getToken(messaging, {
-      vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: registration,
-    });
+    // Generate FCM token
+    const token = await getToken(
+      messaging,
+      {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration:
+          registration,
+      }
+    );
 
     if (!token) {
       console.error(
-        "No FCM registration token available."
+        "FCM registration token was not generated."
       );
 
       return null;
     }
 
     console.log(
-      "FCM Token successfully generated."
+      "================================="
+    );
+    console.log(
+      "FCM TOKEN GENERATED SUCCESSFULLY"
+    );
+    console.log(token);
+    console.log(
+      "================================="
     );
 
     // Save token to Firestore
@@ -129,7 +158,9 @@ export async function requestNotificationPermission(
           token: token,
           sertId: member.sertId,
           name: member.name || "",
-          updatedAt: serverTimestamp(),
+          platform: "web",
+          updatedAt:
+            serverTimestamp(),
         },
         {
           merge: true,
@@ -137,18 +168,19 @@ export async function requestNotificationPermission(
       );
 
       console.log(
-        `FCM token saved for ${member.sertId}.`
+        "FCM token saved to Firestore:",
+        member.sertId
       );
     } else {
       console.warn(
-        "No SERT ID was provided. FCM token was not saved to Firestore."
+        "No SERT ID found. Token was generated but not saved."
       );
     }
 
     return token;
   } catch (error) {
     console.error(
-      "Error getting notification permission/token:",
+      "FCM notification registration error:",
       error
     );
 
@@ -157,8 +189,8 @@ export async function requestNotificationPermission(
 }
 
 /**
- * Listen for notifications while the SERT Portal
- * is currently open.
+ * Listen for FCM messages while
+ * the portal is open.
  */
 export function listenForForegroundMessages() {
   try {
@@ -166,8 +198,14 @@ export function listenForForegroundMessages() {
       messaging,
       (payload) => {
         console.log(
-          "Foreground FCM message received:",
-          payload
+          "================================="
+        );
+        console.log(
+          "FOREGROUND FCM MESSAGE RECEIVED"
+        );
+        console.log(payload);
+        console.log(
+          "================================="
         );
 
         const title =
@@ -191,13 +229,13 @@ export function listenForForegroundMessages() {
     );
 
     console.log(
-      "Foreground notification listener started."
+      "Foreground FCM listener started."
     );
 
     return unsubscribe;
   } catch (error) {
     console.error(
-      "Failed to start foreground notification listener:",
+      "Could not start foreground FCM listener:",
       error
     );
 
@@ -206,17 +244,15 @@ export function listenForForegroundMessages() {
 }
 
 /**
- * Display a notification while the portal
- * is currently open.
+ * Display notification while the
+ * portal is open.
  */
 export function showAnnouncementNotification(
   announcement
 ) {
   try {
-    if (
-      !("Notification" in window)
-    ) {
-      console.log(
+    if (!("Notification" in window)) {
+      console.error(
         "Notifications are not supported."
       );
 
@@ -227,7 +263,7 @@ export function showAnnouncementNotification(
       Notification.permission !==
       "granted"
     ) {
-      console.log(
+      console.error(
         "Notification permission is not granted."
       );
 
@@ -236,21 +272,24 @@ export function showAnnouncementNotification(
 
     const title =
       announcement?.title ||
-      "📢 New SERT Announcement";
+      "📢 TNHS SERT";
 
     const body =
       announcement?.message ||
-      "A new announcement has been posted.";
+      "You have a new announcement.";
 
     const notification =
-      new Notification(title, {
-        body: body,
-        icon: "/sert-logo.jpg",
-        badge: "/sert-logo.jpg",
-        tag:
-          announcement?.id ||
-          `announcement-${Date.now()}`,
-      });
+      new Notification(
+        title,
+        {
+          body,
+          icon: "/sert-logo.jpg",
+          badge: "/sert-logo.jpg",
+          tag:
+            announcement?.id ||
+            `announcement-${Date.now()}`,
+        }
+      );
 
     notification.onclick = () => {
       window.focus();
@@ -258,11 +297,11 @@ export function showAnnouncementNotification(
     };
 
     console.log(
-      "Foreground notification displayed."
+      "Browser notification displayed."
     );
   } catch (error) {
     console.error(
-      "Error showing announcement notification:",
+      "Failed to display notification:",
       error
     );
   }

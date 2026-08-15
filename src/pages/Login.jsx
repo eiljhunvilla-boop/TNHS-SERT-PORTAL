@@ -8,11 +8,11 @@ import AuthLayout from "../components/ui/layout/AuthLayout";
 import GlassCard from "../components/ui/Glasscard";
 import InputField from "../components/ui/InputField";
 import PrimaryButton from "../components/ui/PrimaryButton";
+
 import { getMembersFirestore } from "../services/memberService";
-import { requestNotificationPermission } from "../services/notificationService";
-
-
-import { getMemberFirestore } from "../services/memberService";
+import {
+  requestNotificationPermission,
+} from "../services/notificationService";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -21,40 +21,73 @@ export default function Login() {
   const [secretCode, setSecretCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-const handleLogin = async () => {
-  setError("");
+  const handleLogin = async () => {
+    setError("");
+    setLoading(true);
 
-  try {
-    const firestoreMembers = await getMembersFirestore();
+    try {
+      const firestoreMembers =
+        await getMembersFirestore();
 
-    const member = firestoreMembers.find(
-      (m) =>
-        m.sertId.trim().toLowerCase() ===
-          sertId.trim().toLowerCase() &&
-        m.secretCode.trim() === secretCode.trim()
-    );
+      const member = firestoreMembers.find(
+        (m) =>
+          m?.sertId?.trim().toLowerCase() ===
+            sertId.trim().toLowerCase() &&
+          m?.secretCode?.trim() ===
+            secretCode.trim()
+      );
 
-    if (!member) {
-      setError("Invalid SERT ID or Secret Code");
-      return;
+      if (!member) {
+        setError(
+          "Invalid SERT ID or Secret Code"
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Save logged-in member
+      localStorage.setItem(
+        "sertMember",
+        JSON.stringify(member)
+      );
+
+      /*
+       * Register this device for Firebase
+       * Cloud Messaging notifications.
+       *
+       * Notification registration should NOT
+       * prevent the member from logging in.
+       */
+      try {
+        await requestNotificationPermission(
+          member
+        );
+      } catch (notificationError) {
+        console.error(
+          "NOTIFICATION REGISTRATION ERROR:",
+          notificationError
+        );
+      }
+
+      // Go to dashboard after login
+      navigate("/dashboard");
+
+    } catch (err) {
+      console.error(
+        "LOGIN ERROR:",
+        err
+      );
+
+      setError(
+        err?.message ||
+          "Unable to login. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
-
-localStorage.setItem(
-  "sertMember",
-  JSON.stringify(member)
-);
-
-// Register this device for push notifications
-await requestNotificationPermission(member);
-
-navigate("/dashboard");
-
-  } catch (err) {
-    console.error("LOGIN ERROR:", err);
-    setError(err.message);
-  }
-};
+  };
 
   return (
     <AuthLayout>
@@ -84,9 +117,10 @@ navigate("/dashboard");
             </div>
 
             <p className="mt-8 leading-8 text-blue-100">
-              School Emergency Response Team Management System for
-              announcements, member records, trainings, quizzes, and
-              responder information.
+              School Emergency Response Team
+              Management System for announcements,
+              member records, trainings, quizzes,
+              and responder information.
             </p>
 
           </div>
@@ -115,21 +149,31 @@ navigate("/dashboard");
               icon={<User size={20} />}
               label="SERT ID Number"
               type="text"
-              placeholder="TNHS-SERT-26001"
+              placeholder="TNHS-SERT-26002"
               value={sertId}
-              onChange={(e) => setSertId(e.target.value)}
+              onChange={(e) =>
+                setSertId(e.target.value)
+              }
             />
 
             <InputField
               icon={<Lock size={20} />}
               label="Secret Code"
-              type={showPassword ? "text" : "password"}
+              type={
+                showPassword
+                  ? "text"
+                  : "password"
+              }
               placeholder="Enter Secret Code"
               value={secretCode}
-              onChange={(e) => setSecretCode(e.target.value)}
+              onChange={(e) =>
+                setSecretCode(e.target.value)
+              }
               showPassword={showPassword}
               togglePassword={() =>
-                setShowPassword(!showPassword)
+                setShowPassword(
+                  !showPassword
+                )
               }
             />
 
@@ -139,15 +183,22 @@ navigate("/dashboard");
               </div>
             )}
 
-            <PrimaryButton onClick={handleLogin}>
+            <PrimaryButton
+              onClick={handleLogin}
+              disabled={loading}
+            >
               <span className="flex items-center justify-center gap-2">
                 <Shield size={20} />
-                Login
+
+                {loading
+                  ? "Signing In..."
+                  : "Login"}
               </span>
             </PrimaryButton>
 
             <p className="mt-8 text-center text-sm text-gray-500">
-              © 2026 TNHS School Emergency Response Team
+              © 2026 TNHS School Emergency
+              Response Team
             </p>
 
           </div>
