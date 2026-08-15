@@ -1,72 +1,88 @@
-import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { getMessaging } from "firebase-admin/messaging";
+import {
+  cert,
+  getApps,
+  initializeApp,
+} from "firebase-admin/app";
+
+import {
+  getFirestore,
+} from "firebase-admin/firestore";
+
+import {
+  getMessaging,
+} from "firebase-admin/messaging";
 
 // ==========================================
-// FIREBASE ADMIN
+// FIREBASE ADMIN INITIALIZATION
 // ==========================================
 
-function getFirebaseAdmin() {
-  if (getApps().length > 0) {
-    return getApps()[0];
-  }
+let firebaseAdminApp;
 
+try {
   const projectId =
     process.env.FIREBASE_PROJECT_ID;
 
   const clientEmail =
     process.env.FIREBASE_CLIENT_EMAIL;
 
-  const privateKey =
+  let privateKey =
     process.env.FIREBASE_PRIVATE_KEY;
 
-  // ----------------------------------------
-  // CHECK ENVIRONMENT VARIABLES
-  // ----------------------------------------
+  // Convert escaped \n characters into real
+  // line breaks.
+  if (privateKey) {
+    privateKey = privateKey
+      .replace(/\\n/g, "\n")
+      .replace(/^"(.*)"$/s, "$1")
+      .trim();
+  }
 
-  if (!projectId) {
+  if (
+    !projectId ||
+    !clientEmail ||
+    !privateKey
+  ) {
     throw new Error(
-      "Missing FIREBASE_PROJECT_ID environment variable."
+      "Firebase Admin environment variables are missing."
     );
   }
 
-  if (!clientEmail) {
-    throw new Error(
-      "Missing FIREBASE_CLIENT_EMAIL environment variable."
-    );
-  }
+  firebaseAdminApp =
+    getApps().length > 0
+      ? getApps()[0]
+      : initializeApp({
+          credential: cert({
+            projectId,
+            clientEmail,
+            privateKey,
+          }),
+        });
 
-  if (!privateKey) {
-    throw new Error(
-      "Missing FIREBASE_PRIVATE_KEY environment variable."
-    );
-  }
+} catch (error) {
 
-  // ----------------------------------------
-  // FIX PRIVATE KEY LINE BREAKS
-  // ----------------------------------------
+  console.error(
+    "FIREBASE ADMIN INITIALIZATION ERROR:",
+    error
+  );
 
-  const formattedPrivateKey =
-    privateKey.replace(/\\n/g, "\n");
-
-  // ----------------------------------------
-  // INITIALIZE FIREBASE ADMIN
-  // ----------------------------------------
-
-  return initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey: formattedPrivateKey,
-    }),
-  });
+  throw error;
 }
 
+const db =
+  getFirestore(firebaseAdminApp);
+
+const messaging =
+  getMessaging(firebaseAdminApp);
+
+
 // ==========================================
-// API HANDLER
+// VERCEL API HANDLER
 // ==========================================
 
-export default async function handler(req, res) {
+export default async function handler(
+  req,
+  res
+) {
 
   // ========================================
   // CORS
@@ -87,58 +103,34 @@ export default async function handler(req, res) {
     "Content-Type"
   );
 
+
   // ========================================
-  // OPTIONS
+  // PREFLIGHT
   // ========================================
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
+
   // ========================================
-  // POST ONLY
+  // ONLY POST
   // ========================================
 
   if (req.method !== "POST") {
+
     return res.status(405).json({
       success: false,
       error: "Method not allowed.",
     });
+
   }
+
 
   try {
 
-    console.log(
-      "================================="
-    );
-
-    console.log(
-      "SERT FCM API REQUEST RECEIVED"
-    );
-
-    console.log(
-      "================================="
-    );
-
     // ======================================
-    // INITIALIZE FIREBASE
-    // ======================================
-
-    const firebaseAdmin =
-      getFirebaseAdmin();
-
-    const db =
-      getFirestore(firebaseAdmin);
-
-    const messaging =
-      getMessaging(firebaseAdmin);
-
-    console.log(
-      "Firebase Admin initialized."
-    );
-
-    // ======================================
-    // READ REQUEST BODY
+    // REQUEST DATA
     // ======================================
 
     const {
@@ -147,81 +139,50 @@ export default async function handler(req, res) {
       id,
     } = req.body || {};
 
-    console.log(
-      "Notification title:",
-      title
-    );
-
-    console.log(
-      "Notification ID:",
-      id
-    );
 
     // ======================================
     // VALIDATE
     // ======================================
 
     if (!title || !message) {
+
       return res.status(400).json({
         success: false,
         error:
           "Title and message are required.",
       });
+
     }
+
 
     // ======================================
     // GET DEVICE TOKENS
     // ======================================
-
-    console.log(
-      "Reading notificationTokens..."
-    );
 
     const snapshot =
       await db
         .collection("notificationTokens")
         .get();
 
-    console.log(
-      "Token documents found:",
-      snapshot.size
-    );
-
-    // ======================================
-    // EXTRACT TOKENS
-    // ======================================
 
     const tokens =
       snapshot.docs
         .map((document) => {
+
           const data =
             document.data();
 
           return data?.token;
+
         })
-        .filter(
-          (token) =>
-            typeof token === "string" &&
-            token.length > 0
-        );
+        .filter(Boolean);
 
-    // ======================================
-    // REMOVE DUPLICATES
-    // ======================================
-
-    const uniqueTokens =
-      [...new Set(tokens)];
-
-    console.log(
-      "Unique FCM tokens:",
-      uniqueTokens.length
-    );
 
     // ======================================
     // NO DEVICES
     // ======================================
 
-    if (uniqueTokens.length === 0) {
+    if (tokens.length === 0) {
 
       return res.status(200).json({
         success: true,
@@ -235,10 +196,21 @@ export default async function handler(req, res) {
 
         failed: 0,
       });
+
     }
 
+
     // ======================================
-    // FCM LIMIT
+    // REMOVE DUPLICATE TOKENS
+    // ======================================
+
+    const uniqueTokens =
+      [...new Set(tokens)];
+
+
+    // ======================================
+    // FCM MAXIMUM
+    // 500 TOKENS PER REQUEST
     // ======================================
 
     const chunks = [];
@@ -255,21 +227,26 @@ export default async function handler(req, res) {
           i + 500
         )
       );
+
     }
+
+
+    // ======================================
+    // COUNTERS
+    // ======================================
+
+    let totalSuccess = 0;
+
+    let totalFailure = 0;
+
 
     // ======================================
     // SEND NOTIFICATIONS
     // ======================================
 
-    let totalSuccess = 0;
-    let totalFailure = 0;
-
-    for (const tokenChunk of chunks) {
-
-      console.log(
-        "Sending to devices:",
-        tokenChunk.length
-      );
+    for (
+      const tokenChunk of chunks
+    ) {
 
       const response =
         await messaging.sendEachForMulticast({
@@ -277,15 +254,28 @@ export default async function handler(req, res) {
           tokens:
             tokenChunk,
 
+
+          // ----------------------------------
+          // FCM NOTIFICATION PAYLOAD
+          // ----------------------------------
+
           notification: {
+
             title:
               `📢 ${title}`,
 
             body:
               message,
+
           },
 
+
+          // ----------------------------------
+          // DATA PAYLOAD
+          // ----------------------------------
+
           data: {
+
             id:
               String(
                 id ||
@@ -300,7 +290,13 @@ export default async function handler(req, res) {
 
             url:
               "/dashboard",
+
           },
+
+
+          // ----------------------------------
+          // WEB PUSH CONFIGURATION
+          // ----------------------------------
 
           webpush: {
 
@@ -320,14 +316,24 @@ export default async function handler(req, res) {
 
               requireInteraction:
                 false,
+
             },
 
             fcmOptions: {
+
               link:
                 "/dashboard",
+
             },
+
           },
+
         });
+
+
+      // ------------------------------------
+      // COUNT RESULTS
+      // ------------------------------------
 
       totalSuccess +=
         response.successCount;
@@ -335,20 +341,10 @@ export default async function handler(req, res) {
       totalFailure +=
         response.failureCount;
 
-      console.log(
-        "FCM batch result:",
-        {
-          success:
-            response.successCount,
 
-          failure:
-            response.failureCount,
-        }
-      );
-
-      // ====================================
-      // LOG FAILED TOKENS
-      // ====================================
+      // ------------------------------------
+      // LOG INDIVIDUAL FAILURES
+      // ------------------------------------
 
       response.responses.forEach(
         (result, index) => {
@@ -356,12 +352,16 @@ export default async function handler(req, res) {
           if (!result.success) {
 
             console.error(
-              "FCM token failed:",
+              "FCM TOKEN FAILED:",
               {
-                index,
+                token:
+                  tokenChunk[index],
+
                 error:
-                  result.error?.message ||
-                  "Unknown FCM error.",
+                  result.error?.message,
+
+                code:
+                  result.error?.code,
               }
             );
 
@@ -369,10 +369,12 @@ export default async function handler(req, res) {
 
         }
       );
+
     }
 
+
     // ======================================
-    // FINAL RESULT
+    // LOG FINAL RESULT
     // ======================================
 
     console.log(
@@ -380,28 +382,10 @@ export default async function handler(req, res) {
     );
 
     console.log(
-      "FCM SEND COMPLETE"
+      "FCM NOTIFICATION RESULT"
     );
 
     console.log({
-      totalDevices:
-        uniqueTokens.length,
-
-      success:
-        totalSuccess,
-
-      failed:
-        totalFailure,
-    });
-
-    console.log(
-      "================================="
-    );
-
-    return res.status(200).json({
-
-      success: true,
-
       totalDevices:
         uniqueTokens.length,
 
@@ -411,6 +395,32 @@ export default async function handler(req, res) {
       failed:
         totalFailure,
     });
+
+    console.log(
+      "================================="
+    );
+
+
+    // ======================================
+    // SUCCESS RESPONSE
+    // ======================================
+
+    return res.status(200).json({
+
+      success:
+        totalSuccess > 0,
+
+      totalDevices:
+        uniqueTokens.length,
+
+      sent:
+        totalSuccess,
+
+      failed:
+        totalFailure,
+
+    });
+
 
   } catch (error) {
 
@@ -423,16 +433,15 @@ export default async function handler(req, res) {
     );
 
     console.error(
-      "FCM SEND ERROR"
+      "FCM SEND ERROR:"
     );
 
-    console.error(
-      error
-    );
+    console.error(error);
 
     console.error(
       "================================="
     );
+
 
     return res.status(500).json({
 
@@ -441,6 +450,9 @@ export default async function handler(req, res) {
       error:
         error?.message ||
         "Failed to send notification.",
+
     });
+
   }
+
 }
