@@ -10,21 +10,56 @@ import DashboardLayout from "../components/ui/layout/DashboardLayout";
 export default function Settings() {
   const navigate = useNavigate();
 
-  const member = JSON.parse(localStorage.getItem("sertMember"));
+  // ==========================================
+  // GET CURRENT MEMBER
+  // ==========================================
 
-  // Protect this page
-  if (!member) {
-    return <Navigate to="/" replace />;
+  let member = null;
+
+  try {
+    member = JSON.parse(
+      localStorage.getItem("sertMember")
+    );
+  } catch (error) {
+    console.error(
+      "Failed to read saved member:",
+      error
+    );
+
+    member = null;
   }
+
+  // ==========================================
+  // PROTECT SETTINGS PAGE
+  // ==========================================
+
+  if (!member) {
+    return (
+      <Navigate
+        to="/"
+        replace
+      />
+    );
+  }
+
+  // ==========================================
+  // SIGN OUT
+  // ==========================================
 
   function handleSignOut() {
     localStorage.removeItem("sertMember");
-    navigate("/");
+
+    navigate("/", {
+      replace: true,
+    });
   }
 
   return (
     <DashboardLayout>
+
       <div className="mx-auto max-w-6xl">
+
+        {/* HEADER */}
 
         <h1 className="text-4xl font-bold text-white">
           Settings
@@ -36,12 +71,18 @@ export default function Settings() {
 
         <div className="mt-8 space-y-6">
 
-          {/* Change Secret Code */}
+          {/* ==========================================
+              CHANGE SECRET CODE
+          ========================================== */}
+
           <div className="rounded-3xl border border-white/10 bg-[#182234]/70 p-6 backdrop-blur-xl">
 
             <div className="flex items-center gap-4">
 
-              <KeyRound className="text-blue-400" size={28} />
+              <KeyRound
+                className="text-blue-400"
+                size={28}
+              />
 
               <div>
 
@@ -59,12 +100,18 @@ export default function Settings() {
 
           </div>
 
-          {/* Appearance */}
+          {/* ==========================================
+              APPEARANCE
+          ========================================== */}
+
           <div className="rounded-3xl border border-white/10 bg-[#182234]/70 p-6 backdrop-blur-xl">
 
             <div className="flex items-center gap-4">
 
-              <Palette className="text-purple-400" size={28} />
+              <Palette
+                className="text-purple-400"
+                size={28}
+              />
 
               <div>
 
@@ -82,15 +129,22 @@ export default function Settings() {
 
           </div>
 
-          {/* Sign Out */}
+          {/* ==========================================
+              SIGN OUT
+          ========================================== */}
+
           <button
+            type="button"
             onClick={handleSignOut}
             className="w-full rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-left transition hover:bg-red-500/20"
           >
 
             <div className="flex items-center gap-4">
 
-              <LogOut className="text-red-400" size={28} />
+              <LogOut
+                className="text-red-400"
+                size={28}
+              />
 
               <div>
 
@@ -111,6 +165,7 @@ export default function Settings() {
         </div>
 
       </div>
+
     </DashboardLayout>
   );
 }

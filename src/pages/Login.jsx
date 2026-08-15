@@ -40,30 +40,26 @@ export default function Login() {
       );
 
       if (!member) {
-        setError(
-          "Invalid SERT ID or Secret Code"
-        );
+        setError("Invalid SERT ID or Secret Code");
         setLoading(false);
         return;
       }
 
-      // Save logged-in member
+      // ==========================================
+      // SAVE LOGIN SESSION
+      // ==========================================
+
       localStorage.setItem(
         "sertMember",
         JSON.stringify(member)
       );
 
-      /*
-       * Register this device for Firebase
-       * Cloud Messaging notifications.
-       *
-       * Notification registration should NOT
-       * prevent the member from logging in.
-       */
+      // ==========================================
+      // REGISTER DEVICE FOR NOTIFICATIONS
+      // ==========================================
+
       try {
-        await requestNotificationPermission(
-          member
-        );
+        await requestNotificationPermission(member);
       } catch (notificationError) {
         console.error(
           "NOTIFICATION REGISTRATION ERROR:",
@@ -71,14 +67,16 @@ export default function Login() {
         );
       }
 
-      // Go to dashboard after login
-      navigate("/dashboard");
+      // ==========================================
+      // GO TO DASHBOARD
+      // ==========================================
+
+      navigate("/dashboard", {
+        replace: true,
+      });
 
     } catch (err) {
-      console.error(
-        "LOGIN ERROR:",
-        err
-      );
+      console.error("LOGIN ERROR:", err);
 
       setError(
         err?.message ||
@@ -89,122 +87,152 @@ export default function Login() {
     }
   };
 
+  // ==========================================
+  // ENTER KEY LOGIN
+  // ==========================================
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !loading) {
+      handleLogin();
+    }
+  };
+
   return (
     <AuthLayout>
-      <GlassCard>
-        <div className="grid w-full max-w-6xl overflow-hidden rounded-3xl lg:grid-cols-2">
+      <div onKeyDown={handleKeyDown}>
+        <GlassCard>
 
-          {/* LEFT PANEL */}
+          <div className="grid w-full max-w-6xl overflow-hidden rounded-3xl lg:grid-cols-2">
 
-          <div className="hidden flex-col justify-center bg-gradient-to-br from-[#2563EB] to-[#0F3D91] p-12 lg:flex">
+            {/* ==========================================
+                LEFT PANEL
+            ========================================== */}
 
-            <img
-              src={logo}
-              alt="SERT Logo"
-              className="mb-8 h-28 w-28 rounded-full border-4 border-white"
-            />
+            <div className="hidden flex-col justify-center bg-gradient-to-br from-[#2563EB] to-[#0F3D91] p-12 lg:flex">
 
-            <h1 className="text-5xl font-bold text-white">
-              TNHS
-            </h1>
-
-            <h2 className="mt-2 text-3xl font-semibold text-blue-100">
-              SERT Portal
-            </h2>
-
-            <div className="mt-4 inline-flex w-fit rounded-full border border-blue-300/30 bg-blue-400/10 px-4 py-2 text-sm text-blue-100">
-              Secure Member Portal
-            </div>
-
-            <p className="mt-8 leading-8 text-blue-100">
-              School Emergency Response Team
-              Management System for announcements,
-              member records, trainings, quizzes,
-              and responder information.
-            </p>
-
-          </div>
-
-          {/* RIGHT PANEL */}
-
-          <div className="p-10 md:p-14">
-
-            <div className="flex justify-center lg:hidden">
               <img
                 src={logo}
                 alt="SERT Logo"
-                className="h-24 w-24 rounded-full border-4 border-blue-500"
+                className="mb-8 h-28 w-28 rounded-full border-4 border-white"
               />
+
+              <h1 className="text-5xl font-bold text-white">
+                TNHS
+              </h1>
+
+              <h2 className="mt-2 text-3xl font-semibold text-blue-100">
+                SERT Portal
+              </h2>
+
+              <div className="mt-4 inline-flex w-fit rounded-full border border-blue-300/30 bg-blue-400/10 px-4 py-2 text-sm text-blue-100">
+                Secure Member Portal
+              </div>
+
+              <p className="mt-8 leading-8 text-blue-100">
+                School Emergency Response Team
+                Management System for announcements,
+                member records, trainings, quizzes,
+                and responder information.
+              </p>
+
             </div>
 
-            <h2 className="mt-6 text-center text-4xl font-extrabold text-white lg:text-left">
-              Welcome Back
-            </h2>
+            {/* ==========================================
+                RIGHT PANEL
+            ========================================== */}
 
-            <p className="mt-2 text-center text-gray-400 lg:text-left">
-              Sign in using your SERT ID.
-            </p>
+            <div className="p-10 md:p-14">
 
-            <InputField
-              icon={<User size={20} />}
-              label="SERT ID Number"
-              type="text"
-              placeholder="TNHS-SERT-26002"
-              value={sertId}
-              onChange={(e) =>
-                setSertId(e.target.value)
-              }
-            />
+              <div className="flex justify-center lg:hidden">
 
-            <InputField
-              icon={<Lock size={20} />}
-              label="Secret Code"
-              type={
-                showPassword
-                  ? "text"
-                  : "password"
-              }
-              placeholder="Enter Secret Code"
-              value={secretCode}
-              onChange={(e) =>
-                setSecretCode(e.target.value)
-              }
-              showPassword={showPassword}
-              togglePassword={() =>
-                setShowPassword(
-                  !showPassword
-                )
-              }
-            />
+                <img
+                  src={logo}
+                  alt="SERT Logo"
+                  className="h-24 w-24 rounded-full border-4 border-blue-500"
+                />
 
-            {error && (
-              <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {error}
               </div>
-            )}
 
-            <PrimaryButton
-              onClick={handleLogin}
-              disabled={loading}
-            >
-              <span className="flex items-center justify-center gap-2">
-                <Shield size={20} />
+              <h2 className="mt-6 text-center text-4xl font-extrabold text-white lg:text-left">
+                Welcome Back
+              </h2>
 
-                {loading
-                  ? "Signing In..."
-                  : "Login"}
-              </span>
-            </PrimaryButton>
+              <p className="mt-2 text-center text-gray-400 lg:text-left">
+                Sign in using your SERT ID.
+              </p>
 
-            <p className="mt-8 text-center text-sm text-gray-500">
-              © 2026 TNHS School Emergency
-              Response Team
-            </p>
+              {/* SERT ID */}
+
+              <InputField
+                icon={<User size={20} />}
+                label="SERT ID Number"
+                type="text"
+                placeholder="TNHS-SERT-26002"
+                value={sertId}
+                onChange={(e) =>
+                  setSertId(e.target.value)
+                }
+              />
+
+              {/* SECRET CODE */}
+
+              <InputField
+                icon={<Lock size={20} />}
+                label="Secret Code"
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
+                placeholder="Enter Secret Code"
+                value={secretCode}
+                onChange={(e) =>
+                  setSecretCode(e.target.value)
+                }
+                showPassword={showPassword}
+                togglePassword={() =>
+                  setShowPassword(
+                    !showPassword
+                  )
+                }
+              />
+
+              {/* ERROR */}
+
+              {error && (
+                <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+
+              {/* LOGIN */}
+
+              <PrimaryButton
+                onClick={handleLogin}
+                disabled={loading}
+              >
+                <span className="flex items-center justify-center gap-2">
+
+                  <Shield size={20} />
+
+                  {loading
+                    ? "Signing In..."
+                    : "Login"}
+
+                </span>
+              </PrimaryButton>
+
+              <p className="mt-8 text-center text-sm text-gray-500">
+                © 2026 TNHS School Emergency
+                Response Team
+              </p>
+
+            </div>
 
           </div>
 
-        </div>
-      </GlassCard>
+        </GlassCard>
+      </div>
     </AuthLayout>
   );
 }

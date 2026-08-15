@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -13,59 +14,146 @@ import {
   AnnouncementContext,
 } from "./context/AnnouncementContext";
 
-import { useEffect, useState } from "react";
-
 import {
   subscribeAnnouncements,
 } from "./services/announcementService";
 
+
+// ==========================================
+// GET SAVED MEMBER
+// ==========================================
+
+function getSavedMember() {
+  try {
+    const saved = localStorage.getItem("sertMember");
+
+    if (!saved) {
+      return null;
+    }
+
+    return JSON.parse(saved);
+
+  } catch (error) {
+
+    console.error(
+      "Error reading saved member:",
+      error
+    );
+
+    localStorage.removeItem("sertMember");
+
+    return null;
+  }
+}
+
+
+// ==========================================
+// PROTECTED ROUTE
+// ==========================================
+
+function ProtectedRoute({ children }) {
+
+  const member = getSavedMember();
+
+  if (!member) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+
+// ==========================================
+// LOGIN ROUTE
+// ==========================================
+
+function LoginRoute() {
+
+  const member = getSavedMember();
+
+  // Already logged in
+  if (member) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Login />;
+}
+
+
+// ==========================================
+// ANNOUNCEMENT PROVIDER
+// ==========================================
+
 function AnnouncementProvider({ children }) {
 
-  const [announcementList, setAnnouncementList] = useState([]);
+  const [announcementList, setAnnouncementList] =
+    useState([]);
 
-  const [readAnnouncements, setReadAnnouncements] = useState(() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem("readAnnouncements") || "[]"
-      );
-    } catch {
-      return [];
-    }
-  });
+  const [readAnnouncements, setReadAnnouncements] =
+    useState(() => {
 
-  // =================================
-  // REAL-TIME FIRESTORE ANNOUNCEMENTS
-  // =================================
+      try {
+
+        return JSON.parse(
+          localStorage.getItem(
+            "readAnnouncements"
+          ) || "[]"
+        );
+
+      } catch {
+
+        return [];
+
+      }
+
+    });
+
+
+  // ==========================================
+  // FIRESTORE ANNOUNCEMENTS
+  // ==========================================
 
   useEffect(() => {
 
     const unsubscribe =
       subscribeAnnouncements((data) => {
+
         setAnnouncementList(data);
+
       });
 
-    return () => unsubscribe();
+    return () => {
+
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+
+    };
 
   }, []);
 
-  // =================================
+
+  // ==========================================
   // SAVE READ STATE
-  // =================================
+  // ==========================================
 
   useEffect(() => {
 
     localStorage.setItem(
       "readAnnouncements",
-      JSON.stringify(readAnnouncements)
+      JSON.stringify(
+        readAnnouncements
+      )
     );
 
   }, [readAnnouncements]);
 
-  // =================================
-  // MARK AS READ
-  // =================================
 
-  const markAsRead = (id) => {
+  // ==========================================
+  // MARK AS READ
+  // ==========================================
+
+  function markAsRead(id) {
 
     setReadAnnouncements((current) => {
 
@@ -73,30 +161,37 @@ function AnnouncementProvider({ children }) {
         return current;
       }
 
-      return [...current, id];
+      return [
+        ...current,
+        id,
+      ];
 
     });
 
-  };
+  }
 
-  // =================================
+
+  // ==========================================
   // MARK AS UNREAD
-  // =================================
+  // ==========================================
 
-  const markAsUnread = (id) => {
+  function markAsUnread(id) {
 
-    setReadAnnouncements((current) =>
-      current.filter(
+    setReadAnnouncements((current) => {
+
+      return current.filter(
         (announcementId) =>
           announcementId !== id
-      )
-    );
+      );
 
-  };
+    });
 
-  // =================================
+  }
+
+
+  // ==========================================
   // UNREAD COUNT
-  // =================================
+  // ==========================================
 
   const unreadCount =
     announcementList.filter(
@@ -106,21 +201,44 @@ function AnnouncementProvider({ children }) {
         )
     ).length;
 
+
+  // ==========================================
+  // CONTEXT
+  // ==========================================
+
   const value = {
+
     announcementList,
+
     readAnnouncements,
+
     unreadCount,
+
     markAsRead,
+
     markAsUnread,
+
   };
 
+
   return (
-    <AnnouncementContext.Provider value={value}>
+
+    <AnnouncementContext.Provider
+      value={value}
+    >
+
       {children}
+
     </AnnouncementContext.Provider>
+
   );
+
 }
 
+
+// ==========================================
+// APP
+// ==========================================
 
 function App() {
 
@@ -130,44 +248,110 @@ function App() {
 
       <Routes>
 
+        {/* LOGIN */}
+
         <Route
           path="/"
-          element={<Login />}
+          element={
+            <LoginRoute />
+          }
         />
+
+
+        {/* DASHBOARD */}
 
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
         />
+
+
+        {/* ADMIN */}
 
         <Route
           path="/admin"
-          element={<Admin />}
+          element={
+            <ProtectedRoute>
+              <Admin />
+            </ProtectedRoute>
+          }
         />
+
+
+        {/* TRAINING */}
 
         <Route
           path="/training"
-          element={<Training />}
+          element={
+            <ProtectedRoute>
+              <Training />
+            </ProtectedRoute>
+          }
         />
+
+
+        {/* ANNOUNCEMENTS */}
 
         <Route
           path="/announcements"
-          element={<Announcements />}
+          element={
+            <ProtectedRoute>
+              <Announcements />
+            </ProtectedRoute>
+          }
         />
+
+
+        {/* PROFILE */}
 
         <Route
           path="/profile"
-          element={<Profile />}
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
         />
+
+
+        {/* SETTINGS */}
 
         <Route
           path="/settings"
-          element={<Settings />}
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
         />
+
+
+        {/* MIGRATE */}
 
         <Route
           path="/migrate"
-          element={<MigrateMembers />}
+          element={
+            <ProtectedRoute>
+              <MigrateMembers />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* UNKNOWN URL */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/"
+              replace
+            />
+          }
         />
 
       </Routes>
@@ -175,6 +359,7 @@ function App() {
     </AnnouncementProvider>
 
   );
+
 }
 
 export default App;
