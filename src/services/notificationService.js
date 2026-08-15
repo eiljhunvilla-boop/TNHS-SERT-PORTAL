@@ -64,8 +64,8 @@ async function registerMessagingServiceWorker() {
       );
 
     console.log(
-      "FCM Service Worker registered:",
-      registration.scope
+      "Firebase Messaging Service Worker registered:",
+      registration
     );
 
     await navigator.serviceWorker.ready;
@@ -77,7 +77,6 @@ async function registerMessagingServiceWorker() {
     return registration;
 
   } catch (error) {
-
     console.error(
       "FCM Service Worker registration failed:",
       error
@@ -97,7 +96,6 @@ export async function requestNotificationPermission(
   member
 ) {
   try {
-
     // --------------------------------------
     // CHECK BROWSER SUPPORT
     // --------------------------------------
@@ -209,16 +207,15 @@ export async function requestNotificationPermission(
     );
 
     // --------------------------------------
-    // SAVE TOKEN
+    // SAVE TOKEN TO FIRESTORE
     // --------------------------------------
 
     if (member?.sertId) {
-
       /*
-       * Use the FCM token as the document ID.
+       * FCM token is used as the document ID.
        *
-       * This allows multiple devices for the
-       * same SERT member to receive notifications.
+       * This allows one SERT member to have
+       * multiple registered devices.
        */
 
       const tokenDocument =
@@ -231,21 +228,14 @@ export async function requestNotificationPermission(
       await setDoc(
         tokenDocument,
         {
-          token:
-            token,
-
+          token,
           sertId:
             member.sertId,
-
           name:
             member.name || "",
-
           platform:
             "web",
-
-          deviceId:
-            deviceId,
-
+          deviceId,
           updatedAt:
             serverTimestamp(),
         },
@@ -269,7 +259,6 @@ export async function requestNotificationPermission(
       );
 
     } else {
-
       console.warn(
         "No SERT ID found. Token was generated but not saved."
       );
@@ -278,7 +267,6 @@ export async function requestNotificationPermission(
     return token;
 
   } catch (error) {
-
     console.error(
       "FCM notification registration error:",
       error
@@ -293,13 +281,11 @@ export async function requestNotificationPermission(
 // ==========================================
 
 export function listenForForegroundMessages() {
-
   try {
-
     const unsubscribe =
       onMessage(
         messaging,
-        (payload) => {
+        async (payload) => {
 
           console.log(
             "================================="
@@ -327,15 +313,14 @@ export function listenForForegroundMessages() {
             payload.data?.body ||
             "You have a new announcement.";
 
-          showAnnouncementNotification({
+          const id =
+            payload.data?.id ||
+            Date.now().toString();
+
+          await showAnnouncementNotification({
             title,
-
-            message:
-              body,
-
-            id:
-              payload.data?.id ||
-              Date.now().toString(),
+            message: body,
+            id,
           });
         }
       );
@@ -347,7 +332,6 @@ export function listenForForegroundMessages() {
     return unsubscribe;
 
   } catch (error) {
-
     console.error(
       "Could not start foreground FCM listener:",
       error
@@ -358,17 +342,18 @@ export function listenForForegroundMessages() {
 }
 
 // ==========================================
-// DISPLAY BROWSER NOTIFICATION
+// DISPLAY PUSH NOTIFICATION
 // ==========================================
 
-export function showAnnouncementNotification(
+export async function showAnnouncementNotification(
   announcement
 ) {
-
   try {
+    // --------------------------------------
+    // CHECK NOTIFICATION SUPPORT
+    // --------------------------------------
 
     if (!("Notification" in window)) {
-
       console.error(
         "Notifications are not supported."
       );
@@ -376,17 +361,25 @@ export function showAnnouncementNotification(
       return;
     }
 
+    // --------------------------------------
+    // CHECK PERMISSION
+    // --------------------------------------
+
     if (
       Notification.permission !==
       "granted"
     ) {
-
       console.error(
-        "Notification permission is not granted."
+        "Notification permission is:",
+        Notification.permission
       );
 
       return;
     }
+
+    // --------------------------------------
+    // NOTIFICATION CONTENT
+    // --------------------------------------
 
     const title =
       announcement?.title ||
@@ -396,31 +389,115 @@ export function showAnnouncementNotification(
       announcement?.message ||
       "You have a new announcement.";
 
+    const notificationId =
+      announcement?.id ||
+      `announcement-${Date.now()}`;
+
+    // --------------------------------------
+    // NOTIFICATION OPTIONS
+    // --------------------------------------
+
+    const options = {
+      body,
+
+      icon:
+        "/sert-logo.jpg",
+
+      badge:
+        "/sert-logo.jpg",
+
+      tag:
+        String(notificationId),
+
+      renotify:
+        true,
+
+      requireInteraction:
+        false,
+
+      silent:
+        false,
+
+      data: {
+        url:
+          "/dashboard",
+
+        announcementId:
+          String(notificationId),
+      },
+    };
+
+    // ======================================
+    // PREFERRED METHOD:
+    // SERVICE WORKER NOTIFICATION
+    // ======================================
+
+    if ("serviceWorker" in navigator) {
+      try {
+        const registration =
+          await navigator.serviceWorker.ready;
+
+        await registration.showNotification(
+          title,
+          options
+        );
+
+        console.log(
+          "================================="
+        );
+
+        console.log(
+          "PUSH NOTIFICATION DISPLAYED"
+        );
+
+        console.log(
+          "Title:",
+          title
+        );
+
+        console.log(
+          "Message:",
+          body
+        );
+
+        console.log(
+          "================================="
+        );
+
+        return;
+
+      } catch (serviceWorkerError) {
+
+        console.error(
+          "Service Worker notification failed:",
+          serviceWorkerError
+        );
+
+        console.log(
+          "Falling back to browser Notification API..."
+        );
+      }
+    }
+
+    // ======================================
+    // FALLBACK:
+    // BROWSER NOTIFICATION API
+    // ======================================
+
     const notification =
       new Notification(
         title,
-        {
-          body,
-
-          icon:
-            "/sert-logo.jpg",
-
-          badge:
-            "/sert-logo.jpg",
-
-          tag:
-            announcement?.id ||
-            `announcement-${Date.now()}`,
-        }
+        options
       );
 
     notification.onclick =
       () => {
-
         window.focus();
 
         notification.close();
 
+        window.location.href =
+          "/dashboard";
       };
 
     console.log(
@@ -428,10 +505,8 @@ export function showAnnouncementNotification(
     );
 
   } catch (error) {
-
     console.error(
       "Failed to display notification:",
-
       error
     );
   }
