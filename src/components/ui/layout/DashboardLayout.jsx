@@ -9,9 +9,8 @@ import {
 
 import {
   showAnnouncementNotification,
+  listenForForegroundMessages,
 } from "../../../services/notificationService";
-
-
 
 import {
   AnnouncementContext,
@@ -31,42 +30,85 @@ export default function DashboardLayout({ children }) {
   });
 
   // =================================
-  // REAL-TIME ANNOUNCEMENTS
+  // FIREBASE FCM FOREGROUND LISTENER
   // =================================
 
-useEffect(() => {
-  let firstLoad = true;
-  let previousAnnouncementIds = new Set();
+  useEffect(() => {
+    console.log(
+      "Starting SERT Portal FCM foreground listener..."
+    );
 
-  const unsubscribe = subscribeAnnouncements((data) => {
-    // Don't notify for announcements that already existed
-    // when the member first opened the portal.
-    if (firstLoad) {
-      previousAnnouncementIds = new Set(
-        data.map((announcement) => announcement.id)
-      );
+    const unsubscribe =
+      listenForForegroundMessages();
 
-      firstLoad = false;
-    } else {
-      const newAnnouncements = data.filter(
-        (announcement) =>
-          !previousAnnouncementIds.has(announcement.id)
-      );
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
 
-      newAnnouncements.forEach((announcement) => {
-        showAnnouncementNotification(announcement);
+  // =================================
+  // REAL-TIME FIRESTORE ANNOUNCEMENTS
+  // =================================
+
+  useEffect(() => {
+    let firstLoad = true;
+    let previousAnnouncementIds = new Set();
+
+    const unsubscribe =
+      subscribeAnnouncements((data) => {
+
+        // Don't notify for announcements that
+        // already existed when the member
+        // first opened the portal.
+
+        if (firstLoad) {
+
+          previousAnnouncementIds =
+            new Set(
+              data.map(
+                (announcement) =>
+                  announcement.id
+              )
+            );
+
+          firstLoad = false;
+
+        } else {
+
+          const newAnnouncements =
+            data.filter(
+              (announcement) =>
+                !previousAnnouncementIds.has(
+                  announcement.id
+                )
+            );
+
+          newAnnouncements.forEach(
+            (announcement) => {
+              showAnnouncementNotification(
+                announcement
+              );
+            }
+          );
+
+          previousAnnouncementIds =
+            new Set(
+              data.map(
+                (announcement) =>
+                  announcement.id
+              )
+            );
+        }
+
+        setAnnouncementList(data);
       });
 
-      previousAnnouncementIds = new Set(
-        data.map((announcement) => announcement.id)
-      );
-    }
+    return () => unsubscribe();
 
-    setAnnouncementList(data);
-  });
+  }, []);
 
-  return () => unsubscribe();
-}, []);
   // =================================
   // SAVE READ STATE
   // =================================
@@ -83,13 +125,20 @@ useEffect(() => {
   // =================================
 
   const markAsRead = (id) => {
+
     setReadAnnouncements((current) => {
+
       if (current.includes(id)) {
         return current;
       }
 
-      return [...current, id];
+      return [
+        ...current,
+        id,
+      ];
+
     });
+
   };
 
   // =================================
@@ -97,22 +146,27 @@ useEffect(() => {
   // =================================
 
   const markAsUnread = (id) => {
+
     setReadAnnouncements((current) =>
       current.filter(
         (announcementId) =>
           announcementId !== id
       )
     );
+
   };
 
   // =================================
   // UNREAD COUNT
   // =================================
 
-  const unreadCount = announcementList.filter(
-    (announcement) =>
-      !readAnnouncements.includes(announcement.id)
-  ).length;
+  const unreadCount =
+    announcementList.filter(
+      (announcement) =>
+        !readAnnouncements.includes(
+          announcement.id
+        )
+    ).length;
 
   // =================================
   // SHARED CONTEXT VALUE
@@ -136,7 +190,9 @@ useEffect(() => {
         <div className="flex">
 
           <div className="hidden lg:block">
-            <Sidebar unreadCount={unreadCount} />
+            <Sidebar
+              unreadCount={unreadCount}
+            />
           </div>
 
           <main className="flex-1 p-8 pb-24">

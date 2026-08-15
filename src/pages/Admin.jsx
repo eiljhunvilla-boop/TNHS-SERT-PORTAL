@@ -290,30 +290,115 @@ async function publishAnnouncement() {
     return;
   }
 
-  const announcement = {
-    id: Date.now(),
-    title: newAnnouncement.title,
-    message: newAnnouncement.message,
-    priority: newAnnouncement.priority,
-    pinned: newAnnouncement.pinned,
-    author: member.name,
-    createdAt: new Date().toISOString(),
-  };
+  try {
+    const announcement = {
+      id: Date.now(),
+      title: newAnnouncement.title,
+      message: newAnnouncement.message,
+      priority: newAnnouncement.priority,
+      pinned: newAnnouncement.pinned,
+      author: member.name,
+      createdAt: new Date().toISOString(),
+    };
 
-await addAnnouncementFirestore(
-  announcement
-);
+    // ==========================================
+    // 1. SAVE ANNOUNCEMENT TO FIRESTORE
+    // ==========================================
 
+    await addAnnouncementFirestore(
+      announcement
+    );
 
+    // ==========================================
+    // 2. SEND FCM PUSH NOTIFICATION
+    // ==========================================
 
-  setNewAnnouncement({
-    title: "",
-    message: "",
-    priority: "Normal",
-    pinned: false,
-  });
+    try {
+      const response =
+        await fetch(
+          "/api/send-notification",
+          {
+            method: "POST",
 
-  setShowAnnouncementModal(false);
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              title:
+                announcement.title,
+
+              message:
+                announcement.message,
+
+              id:
+                announcement.id,
+            }),
+          }
+        );
+
+      const result =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            "Notification API failed."
+        );
+      }
+
+      console.log(
+        "FCM notification result:",
+        result
+      );
+
+    } catch (notificationError) {
+
+      console.error(
+        "FCM notification failed:",
+        notificationError
+      );
+
+      /*
+       * The announcement was already
+       * successfully saved to Firestore.
+       *
+       * Therefore we don't prevent the
+       * announcement from being published
+       * just because push notification
+       * sending failed.
+       */
+
+      alert(
+        "Announcement published, but the push notification could not be sent."
+      );
+    }
+
+    // ==========================================
+    // 3. RESET FORM
+    // ==========================================
+
+    setNewAnnouncement({
+      title: "",
+      message: "",
+      priority: "Normal",
+      pinned: false,
+    });
+
+    setShowAnnouncementModal(false);
+
+  } catch (error) {
+
+    console.error(
+      "PUBLISH ANNOUNCEMENT ERROR:",
+      error
+    );
+
+    alert(
+      "Unable to publish announcement. Please try again."
+    );
+  }
 }
 
 function deleteAnnouncement(announcement) {

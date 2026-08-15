@@ -11,18 +11,46 @@ import {
 
 import { messaging, db } from "../firebase";
 
-const VAPID_KEY =
-  "BOgGh02Vhy7drnkD4tcEc3gTdEVL1bMrLcyQ7kHx0w7QEGEvPLbrTiLz6vYroe6mLkbvIbECRLUYkE";
+// ==========================================
+// FIREBASE WEB PUSH VAPID PUBLIC KEY
+// ==========================================
 
-/**
- * Register Firebase Cloud Messaging
- * service worker.
- */
+const VAPID_KEY =
+  "BOgGh02Vhy7drnkD4tcEc3gTdEVL1bMrLcyQ7kHx2IKquiOpV_07QEGEvPLbrTiLz6vYroe6mLkbvIbECRLUYkE";
+
+// ==========================================
+// CREATE / GET UNIQUE DEVICE ID
+// ==========================================
+
+function getDeviceId() {
+  const STORAGE_KEY = "sertDeviceId";
+
+  let deviceId =
+    localStorage.getItem(STORAGE_KEY);
+
+  if (!deviceId) {
+    deviceId =
+      crypto.randomUUID();
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      deviceId
+    );
+  }
+
+  return deviceId;
+}
+
+// ==========================================
+// REGISTER FIREBASE MESSAGING SERVICE WORKER
+// ==========================================
+
 async function registerMessagingServiceWorker() {
   if (!("serviceWorker" in navigator)) {
     console.error(
       "Service workers are not supported by this browser."
     );
+
     return null;
   }
 
@@ -47,7 +75,9 @@ async function registerMessagingServiceWorker() {
     );
 
     return registration;
+
   } catch (error) {
+
     console.error(
       "FCM Service Worker registration failed:",
       error
@@ -57,16 +87,21 @@ async function registerMessagingServiceWorker() {
   }
 }
 
-/**
- * Request notification permission,
- * generate the FCM token,
- * and save the token to Firestore.
- */
+// ==========================================
+// REQUEST NOTIFICATION PERMISSION
+// GENERATE FCM TOKEN
+// SAVE DEVICE TOKEN
+// ==========================================
+
 export async function requestNotificationPermission(
   member
 ) {
   try {
-    // Check browser support
+
+    // --------------------------------------
+    // CHECK BROWSER SUPPORT
+    // --------------------------------------
+
     if (
       !("Notification" in window) ||
       !("serviceWorker" in navigator)
@@ -83,7 +118,10 @@ export async function requestNotificationPermission(
       Notification.permission
     );
 
-    // Only request permission when necessary
+    // --------------------------------------
+    // REQUEST PERMISSION
+    // --------------------------------------
+
     let permission =
       Notification.permission;
 
@@ -105,7 +143,10 @@ export async function requestNotificationPermission(
       return null;
     }
 
-    // Register the Firebase service worker
+    // --------------------------------------
+    // REGISTER SERVICE WORKER
+    // --------------------------------------
+
     const registration =
       await registerMessagingServiceWorker();
 
@@ -117,15 +158,21 @@ export async function requestNotificationPermission(
       return null;
     }
 
-    // Generate FCM token
-    const token = await getToken(
-      messaging,
-      {
-        vapidKey: VAPID_KEY,
-        serviceWorkerRegistration:
-          registration,
-      }
-    );
+    // --------------------------------------
+    // GENERATE FCM TOKEN
+    // --------------------------------------
+
+    const token =
+      await getToken(
+        messaging,
+        {
+          vapidKey:
+            VAPID_KEY,
+
+          serviceWorkerRegistration:
+            registration,
+        }
+      );
 
     if (!token) {
       console.error(
@@ -138,27 +185,67 @@ export async function requestNotificationPermission(
     console.log(
       "================================="
     );
+
     console.log(
       "FCM TOKEN GENERATED SUCCESSFULLY"
     );
+
     console.log(token);
+
     console.log(
       "================================="
     );
 
-    // Save token to Firestore
+    // --------------------------------------
+    // DEVICE ID
+    // --------------------------------------
+
+    const deviceId =
+      getDeviceId();
+
+    console.log(
+      "SERT Device ID:",
+      deviceId
+    );
+
+    // --------------------------------------
+    // SAVE TOKEN
+    // --------------------------------------
+
     if (member?.sertId) {
-      await setDoc(
+
+      /*
+       * Use the FCM token as the document ID.
+       *
+       * This allows multiple devices for the
+       * same SERT member to receive notifications.
+       */
+
+      const tokenDocument =
         doc(
           db,
           "notificationTokens",
-          member.sertId
-        ),
+          token
+        );
+
+      await setDoc(
+        tokenDocument,
         {
-          token: token,
-          sertId: member.sertId,
-          name: member.name || "",
-          platform: "web",
+          token:
+            token,
+
+          sertId:
+            member.sertId,
+
+          name:
+            member.name || "",
+
+          platform:
+            "web",
+
+          deviceId:
+            deviceId,
+
           updatedAt:
             serverTimestamp(),
         },
@@ -168,17 +255,30 @@ export async function requestNotificationPermission(
       );
 
       console.log(
-        "FCM token saved to Firestore:",
+        "FCM token saved to Firestore."
+      );
+
+      console.log(
+        "Member:",
         member.sertId
       );
+
+      console.log(
+        "Device:",
+        deviceId
+      );
+
     } else {
+
       console.warn(
         "No SERT ID found. Token was generated but not saved."
       );
     }
 
     return token;
+
   } catch (error) {
+
     console.error(
       "FCM notification registration error:",
       error
@@ -188,52 +288,66 @@ export async function requestNotificationPermission(
   }
 }
 
-/**
- * Listen for FCM messages while
- * the portal is open.
- */
+// ==========================================
+// FOREGROUND FCM MESSAGES
+// ==========================================
+
 export function listenForForegroundMessages() {
+
   try {
-    const unsubscribe = onMessage(
-      messaging,
-      (payload) => {
-        console.log(
-          "================================="
-        );
-        console.log(
-          "FOREGROUND FCM MESSAGE RECEIVED"
-        );
-        console.log(payload);
-        console.log(
-          "================================="
-        );
 
-        const title =
-          payload.notification?.title ||
-          payload.data?.title ||
-          "📢 TNHS SERT";
+    const unsubscribe =
+      onMessage(
+        messaging,
+        (payload) => {
 
-        const body =
-          payload.notification?.body ||
-          payload.data?.body ||
-          "You have a new announcement.";
+          console.log(
+            "================================="
+          );
 
-        showAnnouncementNotification({
-          title,
-          message: body,
-          id:
-            payload.data?.id ||
-            Date.now().toString(),
-        });
-      }
-    );
+          console.log(
+            "FOREGROUND FCM MESSAGE RECEIVED"
+          );
+
+          console.log(
+            payload
+          );
+
+          console.log(
+            "================================="
+          );
+
+          const title =
+            payload.notification?.title ||
+            payload.data?.title ||
+            "📢 TNHS SERT";
+
+          const body =
+            payload.notification?.body ||
+            payload.data?.body ||
+            "You have a new announcement.";
+
+          showAnnouncementNotification({
+            title,
+
+            message:
+              body,
+
+            id:
+              payload.data?.id ||
+              Date.now().toString(),
+          });
+        }
+      );
 
     console.log(
       "Foreground FCM listener started."
     );
 
     return unsubscribe;
+
   } catch (error) {
+
     console.error(
       "Could not start foreground FCM listener:",
       error
@@ -243,15 +357,18 @@ export function listenForForegroundMessages() {
   }
 }
 
-/**
- * Display notification while the
- * portal is open.
- */
+// ==========================================
+// DISPLAY BROWSER NOTIFICATION
+// ==========================================
+
 export function showAnnouncementNotification(
   announcement
 ) {
+
   try {
+
     if (!("Notification" in window)) {
+
       console.error(
         "Notifications are not supported."
       );
@@ -263,6 +380,7 @@ export function showAnnouncementNotification(
       Notification.permission !==
       "granted"
     ) {
+
       console.error(
         "Notification permission is not granted."
       );
@@ -283,25 +401,37 @@ export function showAnnouncementNotification(
         title,
         {
           body,
-          icon: "/sert-logo.jpg",
-          badge: "/sert-logo.jpg",
+
+          icon:
+            "/sert-logo.jpg",
+
+          badge:
+            "/sert-logo.jpg",
+
           tag:
             announcement?.id ||
             `announcement-${Date.now()}`,
         }
       );
 
-    notification.onclick = () => {
-      window.focus();
-      notification.close();
-    };
+    notification.onclick =
+      () => {
+
+        window.focus();
+
+        notification.close();
+
+      };
 
     console.log(
       "Browser notification displayed."
     );
+
   } catch (error) {
+
     console.error(
       "Failed to display notification:",
+
       error
     );
   }
